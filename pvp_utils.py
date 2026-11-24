@@ -2,10 +2,176 @@ import base64
 import json
 import math
 from pathlib import Path
-import pandas as pd
 import requests
-import streamlit as st
 import re
+from datetime import datetime, timezone
+import re
+import libsql
+import pandas as pd
+import streamlit as st
+
+RESOURCE_COLUMNS = [
+    "player_name",
+    "damage_val",
+    "health_val",
+    "hammers",
+    "skill_tickets",
+    "skill_summon_cost",
+    "skill_level",
+    "egg_summon_lvl",
+    "egg_summon_chance",
+    "pets_to_merge",
+    "mount_summon_lvl",
+    "mount_clockwinders",
+    "mount_summon_cost",
+    "mount_extra_chance",
+    "clan_tech_vials",
+    "updated_at",
+]
+
+_MULTIPLIERS = {
+    "": 1.0,
+    "k": 1e3,
+    "m": 1e6,
+    "b": 1e9,
+    "t": 1e12,
+    "q": 1e15,
+}
+
+
+def parse_stat_value(raw_value, default: float = 0.0) -> float:
+  """Converts strings like '13b', '4.5t', '250m', or '13000000000' into a number."""
+  if raw_value is None:
+    return float(default)
+  if isinstance(raw_value, (int, float)):
+    return float(raw_value)
+
+  text = str(raw_value).strip().lower().replace(",", "")
+  if not text:
+    return float(default)
+
+  match = re.fullmatch(r"([+-]?\d+(?:\.\d+)?)\s*([a-z]*)", text)
+  if not match:
+    raise ValueError(f"Could not parse '{raw_value}'. Try something like 13b or 450m.")
+
+  number = float(match.group(1))
+  suffix = match.group(2)
+  if suffix not in _MULTIPLIERS:
+    raise ValueError(f"Unsupported suffix '{suffix}' in '{raw_value}'.")
+
+  return number * _MULTIPLIERS[suffix]
+
+
+def format_compact_input(val) -> str:
+  """Formats a stored numeric stat for text_input prefill, e.g. 13000000000 -> '13b'."""
+  if val is None or float(val) == 0.0:
+    return "0"
+  num = float(val)
+  for suffix, mult in [
+      ("q", 1e15),
+      ("t", 1e12),
+      ("b", 1e9),
+      ("m", 1e6),
+      ("k", 1e3),
+  ]:
+    if abs(num) >= mult:
+      return f"{num / mult:g}{suffix}"
+  return f"{num:g}"
+
+
+@st.cache_resource
+def get_turso_conn():
+  db_url = st.secrets["TURSO_DATABASE_URL"]
+  auth_token = st.secrets["TURSO_AUTH_TOKEN"]
+  conn = libsql.connect(database=db_url, auth_token=auth_token)
+  conn.execute("""
+        CREATE TABLE IF NOT EXISTS player_resources (
+            player_name TEXT PRIMARY KEY,
+            damage_val REAL NOT NULL DEFAULT 0.0,
+            health_val REAL NOT NULL DEFAULT 0.0,
+            hammers INTEGER NOT NULL DEFAULT 0,
+            skill_tickets INTEGER NOT NULL DEFAULT 0,
+            skill_summon_cost INTEGER NOT NULL DEFAULT 0,
+            skill_level INTEGER NOT NULL DEFAULT 0,
+            egg_summon_lvl INTEGER NOT NULL DEFAULT 0,
+            egg_summon_chance REAL NOT NULL DEFAULT 0.0,
+            pets_to_merge INTEGER NOT NULL DEFAULT 0,
+            mount_summon_lvl INTEGER NOT NULL DEFAULT 0,
+            mount_clockwinders INTEGER NOT NULL DEFAULT 0,
+            mount_summon_cost INTEGER NOT NULL DEFAULT 0,
+            mount_extra_chance REAL NOT NULL DEFAULT 0.0,
+            clan_tech_vials INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL
+        )
+    """)
+  conn.commit()
+  return conn
+
+
+@st.cache_data(ttl=15)
+def load_player_resources() -> pd.DataFrame:
+  conn = get_turso_conn()
+  cols_sql = ", ".join(RESOURCE_COLUMNS)
+  rows = conn.execute(
+      f"SELECT {cols_sql} FROM player_resources ORDER BY player_name ASC"
+  ).fetchall()
+  if not rows:
+    return pd.DataFrame(columns=RESOURCE_COLUMNS)
+  return pd.DataFrame(rows, columns=RESOURCE_COLUMNS)
+
+
+def upsert_player_resources(data: dict):
+  conn = get_turso_conn()
+  now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+  conn.execute(
+      """
+        INSERT INTO player_resources (
+            player_name, damage_val, health_val,
+            hammers, skill_tickets, skill_summon_cost, skill_level,
+            egg_summon_lvl, egg_summon_chance, pets_to_merge,
+            mount_summon_lvl, mount_clockwinders, mount_summon_cost,
+            mount_extra_chance, clan_tech_vials, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(player_name) DO UPDATE SET
+            damage_val = excluded.damage_val,
+            health_val = excluded.health_val,
+            hammers = excluded.hammers,
+            skill_tickets = excluded.skill_tickets,
+            skill_summon_cost = excluded.skill_summon_cost,
+            skill_level = excluded.skill_level,
+            egg_summon_lvl = excluded.egg_summon_lvl,
+            egg_summon_chance = excluded.egg_summon_chance,
+            pets_to_merge = excluded.pets_to_merge,
+            mount_summon_lvl = excluded.mount_summon_lvl,
+            mount_clockwinders = excluded.mount_clockwinders,
+            mount_summon_cost = excluded.mount_summon_cost,
+            mount_extra_chance = excluded.mount_extra_chance,
+            clan_tech_vials = excluded.clan_tech_vials,
+            updated_at = excluded.updated_at
+        """,
+      (
+          data["player_name"],
+          float(data["damage_val"]),
+          float(data["health_val"]),
+          int(data["hammers"]),
+          int(data["skill_tickets"]),
+          int(data["skill_summon_cost"]),
+          int(data["skill_level"]),
+          int(data["egg_summon_lvl"]),
+          float(data["egg_summon_chance"]),
+          int(data["pets_to_merge"]),
+          int(data["mount_summon_lvl"]),
+          int(data["mount_clockwinders"]),
+          int(data["mount_summon_cost"]),
+          float(data["mount_extra_chance"]),
+          int(data["clan_tech_vials"]),
+          now_utc,
+      ),
+  )
+  conn.commit()
+  st.cache_data.clear()
+
 
 def format_compact_input(val) -> str:
   """Formats a stored number for text_input prefill, e.g. 13000000000 -> '13b'."""
