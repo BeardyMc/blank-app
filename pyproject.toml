@@ -1,5 +1,5 @@
 [project]
-name = "EDGR web tools"
+name = "EDGR_web_tools"
 version = "0.1.0"
 description = "Improving our optimisations"
 readme = "README.md"
