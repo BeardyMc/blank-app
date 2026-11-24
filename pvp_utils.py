@@ -7,6 +7,23 @@ import requests
 import streamlit as st
 import re
 
+def format_compact_input(val) -> str:
+  """Formats a stored number for text_input prefill, e.g. 13000000000 -> '13b'."""
+  if val is None or float(val) == 0:
+    return "0"
+  val = float(val)
+  for suffix, mult in [
+      ("q", 1e15),
+      ("t", 1e12),
+      ("b", 1e9),
+      ("m", 1e6),
+      ("k", 1e3),
+  ]:
+    if abs(val) >= mult:
+      scaled = val / mult
+      return f"{scaled:g}{suffix}"
+  return f"{val:g}"
+
 
 def parse_stat_value(raw_value, default: float = 0.0) -> float:
   """Converts strings like '13b', '4.5t', '250m', or '13000000000' into a float."""
