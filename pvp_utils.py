@@ -664,7 +664,7 @@ def load_rosters(clan):
       raw_text = base64.b64decode(payload["content"]).decode("utf-8")
       return json.loads(raw_text)
     except Exception as exc:
-      st.error("GitHub load error", flush=True)
+      st.error("GitHub load error")
 
   return {}
 
