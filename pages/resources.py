@@ -81,7 +81,7 @@ with st.form("clan_resources_form"):
         "Skill Summon Cost",
         min_value=200,
         step=1,
-        max_value=140
+        max_value=140, 
         value=int(existing.get("skill_summon_cost", 200)),
     )
   s5, s6, s7 = st.columns(3, wrap=False)
@@ -127,7 +127,7 @@ with st.form("clan_resources_form"):
         "Egg Summon Chance",
         min_value=0
         step=1
-        max_value=50
+        max_value=50,
         value=int(existing.get("egg_summon_chance", 0)),
     )
   with e3:
@@ -161,7 +161,7 @@ with st.form("clan_resources_form"):
         "Pet Ascensions",
         min_value=0,
         step=1,
-        max_value=3
+        max_value=3, 
         value=ex_e3
     )
   egg_summon_lvl=f"{egg_summon_lvl1}_{egg_summon_lvl2}_{egg_summon_lvl3}"
@@ -179,7 +179,7 @@ with st.form("clan_resources_form"):
         "Mount Cost Reduction",
         min_value=0,
         step=1,
-        max_value=30
+        max_value=30, 
         value=int(existing.get("mount_cost_reduction", 0)),
     )
   with m3:
@@ -187,7 +187,7 @@ with st.form("clan_resources_form"):
         "Mount Summon Extra Chance",
         min_value=0,
         step=1
-        max_value=50
+        max_value=50, 
         value=int(existing.get("mount_extra_chance", 0)),
     )
 
@@ -199,7 +199,7 @@ with st.form("clan_resources_form"):
         "Mount Summon Lvl",
         min_value=0,
         step=1,
-        max=150
+        max=150, 
         value=ex_e1
     )
   with m5:
@@ -207,7 +207,7 @@ with st.form("clan_resources_form"):
         "Level Progression",
         min_value=0,
         step=1,
-        max=150
+        max=620,
         value=ex_e2
     )
   with m6:
@@ -215,7 +215,7 @@ with st.form("clan_resources_form"):
         "Mount Ascensions",
         min_value=0,
         step=1,
-        max=3
+        max=3,
         value=ex_e3
     )
   mount_summon_lvl = f"{mount_summon_lvl2} _{mount_summon_lvl2}_{mount_summon_lvl2}"
