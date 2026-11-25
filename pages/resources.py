@@ -68,6 +68,9 @@ with st.form("clan_resources_form"):
         step=1,
         value=int(existing.get("clan_tech_vials", 0)),
     ) 
+
+  st.divider()
+
   s3, s4 = st.columns(2,wrap=False)
   with s3:
     skill_tickets = st.number_input(
@@ -113,6 +116,7 @@ with st.form("clan_resources_form"):
     )
   skill_level = f"{int(skill_level1)}_{int(skill_level2)}_{int(skill_level3)}"
 
+  st.divider() 
 
   e1, e2, e3 = st.columns(3, wrap=False)
   with e1:
@@ -150,7 +154,7 @@ with st.form("clan_resources_form"):
     )
   with e5:
     egg_summon_lvl2 = st.number_input(
-        "Levle Progression",
+        "Level Progression",
         min_value=0,
         step=1,
         max_value=473, 
@@ -165,6 +169,8 @@ with st.form("clan_resources_form"):
         value=ex_e3
     )
   egg_summon_lvl=f"{egg_summon_lvl1}_{egg_summon_lvl2}_{egg_summon_lvl3}"
+
+  st.divider()
 
   m1, m2 = st.columns(2, wrap=False)
   with m1:
@@ -228,7 +234,7 @@ with st.form("clan_resources_form"):
     )
   mount_summon_lvl = f"{mount_summon_lvl1} _{mount_summon_lvl2}_{mount_summon_lvl3}"
 
-  if st.form_submit_button("Save to Turso", use_container_width=True):
+  if st.form_submit_button("Save to Database", use_container_width=True):
     try:
       parsed_damage = parse_stat_value(damage_input)
       parsed_health = parse_stat_value(health_input)
@@ -251,6 +257,7 @@ with st.form("clan_resources_form"):
           "mount_clockwinders": mount_clockwinders,
           "mount_summon_cost": mount_summon_cost,
           "mount_extra_chance": mount_extra_chance,
+          "mount_mergers": mount_mergers, 
           "clan_tech_vials": clan_tech_vials,
       })
       st.success(f"Saved {selected_player}'s stats and resources!")
