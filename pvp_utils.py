@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS player_resources (
     mount_cost_reduction INTEGER NOT NULL DEFAULT 0,
     mount_extra_chance INTEGER NOT NULL DEFAULT 0,
     clan_tech_vials INTEGER NOT NULL DEFAULT 0,
-    Eggshells INTEGER NOT NULL DEFAULT 0
+    Eggshells INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL
 )
 """
