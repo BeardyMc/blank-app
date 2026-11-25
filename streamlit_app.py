@@ -14,12 +14,13 @@ st.set_page_config(page_title="Day 6 PvP & Clan Hub", layout="wide")
 # 2. SHARED SESSION STATE (ROSTERS & BATTLES)
 # ==========================================
 if "players_df" not in st.session_state or "enemies_df" not in st.session_state:
-  rosters = load_rosters("clan")
+  clan_rosters = load_rosters("clan")
+  enemy_rosters = load_rosters("enemy")
   st.session_state.players_df = pd.DataFrame(
-      _filter_active_entries(rosters.get("players", []))
+      _filter_active_entries(clan_rosters.get("players", []))
   )
   st.session_state.enemies_df = pd.DataFrame(
-      _filter_active_entries(rosters.get("enemies", []))
+      _filter_active_entries(enemy_rosters.get("enemies", []))
   )
 
 # ==========================================
