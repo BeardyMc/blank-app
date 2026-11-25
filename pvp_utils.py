@@ -630,20 +630,19 @@ def assign_rank_points(df, power_col="Power (b)"):
   return out.drop(columns=["_sort_power"])
 
 
-def _get_github_config(clan):
-  """Reads GitHub repo settings from `st.secrets`."""
+def _get_github_config(roster_type="clan"):
+  """Reads GitHub repo settings from `st.secrets` for 'clan' or 'enemy'."""
   try:
     token = st.secrets["GITHUB_TOKEN"]
     repo = st.secrets["GITHUB_REPO"]
-    if clan == "clan":
-        path = st.secrets.get("GITHUB_DATA_PATH", "data/clan_rosters.json")
-    elif clan == "enemy":
-        path = st.secrets.get("GITHUB_DATA_PATH", "data/enemy_rosters.json")
-    
+    if roster_type == "enemy":
+      path = st.secrets.get("GITHUB_ENEMY_PATH", "data/enemy_roster.json")
+    else:
+      path = st.secrets.get("GITHUB_CLAN_PATH", "data/clan_roster.json")
     branch = st.secrets.get("GITHUB_BRANCH", "main")
     return token, repo, path, branch
   except (KeyError, FileNotFoundError):
-    return None, None, None, None
+    return None, None, None, None 
 
 
 def load_rosters(clan):
@@ -665,14 +664,7 @@ def load_rosters(clan):
       raw_text = base64.b64decode(payload["content"]).decode("utf-8")
       return json.loads(raw_text)
     except Exception as exc:
-      print(f"GitHub load error, falling back to local file: {exc}", flush=True)
-
-  local_path = Path(path or "data/pvp_rosters.json")
-  if local_path.exists():
-    try:
-      return json.loads(local_path.read_text(encoding="utf-8"))
-    except Exception as exc:
-      print(f"Local roster read error: {exc}", flush=True)
+      st.error("GitHub load error", flush=True)
 
   return {}
 
@@ -739,11 +731,15 @@ def sort_roster_for_save(df, power_col="Power (b)"):
   return out.reset_index(drop=True)
 
 
-def save_rosters_to_github(
-    players_df, enemies_df, commit_message="Update PvP rosters"
+def save_roster_to_github(
+    roster_type,
+    roster_df,
+    commit_message=None,
+    power_col="Power (b)",
 ):
-  """Sorts and pushes `players_df` and `enemies_df` to the GitHub JSON file."""
-  token, repo, path, branch = _get_github_config()
+  """Sorts and pushes a single roster DataFrame ('clan' or 'enemy') to GitHub."""
+  normalized_type = "enemy" if str(roster_type).strip().lower() == "enemy" else "clan"
+  token, repo, path, branch = _get_github_config(normalized_type)
   if not token or not repo:
     return False, "Missing GITHUB_TOKEN or GITHUB_REPO in secrets."
 
@@ -753,6 +749,17 @@ def save_rosters_to_github(
       "Accept": "application/vnd.github+json",
   }
 
+  default_msg = (
+      "Update enemy PvP roster"
+      if normalized_type == "enemy"
+      else "Update clan PvP roster"
+  )
+  final_msg = (
+      commit_message.strip()
+      if isinstance(commit_message, str) and commit_message.strip()
+      else default_msg
+  )
+
   try:
     get_resp = requests.get(
         url, headers=headers, params={"ref": branch}, timeout=10
@@ -760,19 +767,26 @@ def save_rosters_to_github(
     get_resp.raise_for_status()
     current_sha = get_resp.json()["sha"]
 
-    sorted_players = sort_roster_for_save(players_df)
-    sorted_enemies = sort_roster_for_save(enemies_df)
+    sorted_df = sort_roster_for_save(roster_df, power_col=power_col)
+    records = sorted_df.to_dict(orient="records")
 
-    roster_payload = {
-        "players": sorted_players.to_dict(orient="records"),
-        "enemies": sorted_enemies.to_dict(orient="records"),
-    }
+    # Match the top-level JSON structure each file uses
+    if normalized_type == "enemy":
+      roster_payload = {"enemies": records}
+    else:
+      # For clan_rosters.json, strip Power (b) if you only want name & rank stored there
+      clan_records = [
+          {k: v for k, v in rec.items() if k != "Power (b)"}
+          for rec in records
+      ]
+      roster_payload = {"players": clan_records}
+
     encoded_content = base64.b64encode(
         json.dumps(roster_payload, indent=2).encode("utf-8")
     ).decode("utf-8")
 
     put_body = {
-        "message": commit_message,
+        "message": final_msg,
         "content": encoded_content,
         "sha": current_sha,
         "branch": branch,
@@ -780,14 +794,11 @@ def save_rosters_to_github(
     put_resp = requests.put(url, headers=headers, json=put_body, timeout=10)
     put_resp.raise_for_status()
 
-    st.session_state.players_df = sorted_players
-    st.session_state.enemies_df = sorted_enemies
-
-    return True, f"Pushed sorted rosters to `{path}` on `{branch}`."
+    return True, sorted_df, f"Pushed sorted `{normalized_type}` roster to `{path}` on `{branch}`."
   except Exception as exc:
-    print(f"GitHub push error: {exc}", flush=True)
-    return False, f"GitHub push failed: {exc}"
-
+    print(f"GitHub push error ({normalized_type}): {exc}", flush=True)
+    return False, roster_df, f"GitHub push failed: {exc}"
+  
 
 def load_battles():
   """Fetches `data/pvp_battles.json` from GitHub API, falling back to local disk."""
