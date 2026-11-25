@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from pvp_utils import format_si_3sf, save_rosters_to_github, sum_roster_power
+from pvp_utils import format_si_3sf, save_roster_to_github, sum_roster_power
 
 st.title("Roster Editor")
 st.write(
@@ -73,7 +73,7 @@ with st.expander("Save / Push Rosters to GitHub", expanded=True):
       if st.button(
           "Push Rosters to GitHub", key="push_rosters_btn", width="stretch"
       ):
-        ok, msg = save_rosters_to_github( 
+        ok, msg = save_roster_to_github( 
             "clan", 
             st.session_state.players_df,
             st.session_state.enemies_df,
