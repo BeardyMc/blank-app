@@ -118,7 +118,7 @@ with st.form("clan_resources_form"):
   with e1:
     eggshells = st.number_input(
         "Eggshells",
-        min_value=0
+        min_value=0, 
         step=1,
         value=int(existing.get("Eggshells", 0)),
     )
