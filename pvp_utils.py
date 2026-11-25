@@ -5,7 +5,6 @@ from pathlib import Path
 import requests
 import re
 from datetime import datetime, timezone
-import re
 import libsql
 import pandas as pd
 import streamlit as st
@@ -26,6 +25,7 @@ RESOURCE_COLUMNS = [
     "mount_cost_reduction",
     "mount_extra_chance",
     "clan_tech_vials",
+    "Eggshells", 
     "updated_at",
 ]
 
@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS player_resources (
     mount_cost_reduction INTEGER NOT NULL DEFAULT 0,
     mount_extra_chance INTEGER NOT NULL DEFAULT 0,
     clan_tech_vials INTEGER NOT NULL DEFAULT 0,
+    Eggshells INTEGER NOT NULL DEFAULT 0
     updated_at TEXT NOT NULL
 )
 """
@@ -141,7 +142,7 @@ def upsert_player_resources(data: dict):
             hammers, skill_tickets, skill_summon_cost, skill_level,
             egg_summon_lvl, egg_summon_chance, pets_to_merge,
             mount_summon_lvl, mount_clockwinders,     mount_cost_reduction,
-            mount_extra_chance, clan_tech_vials, updated_at
+            mount_extra_chance, clan_tech_vials, Eggshells, updated_at
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(player_name) DO UPDATE SET
@@ -159,6 +160,7 @@ def upsert_player_resources(data: dict):
             mount_cost_reduction = excluded.mount_cost_reduction,
             mount_extra_chance = excluded.mount_extra_chance,
             clan_tech_vials = excluded.clan_tech_vials,
+            Eggshells = excluded.Eggshells
             updated_at = excluded.updated_at
         """,
       (
@@ -177,6 +179,7 @@ def upsert_player_resources(data: dict):
           int(data["mount_cost_reduction"]),
           int(data["mount_extra_chance"]),
           int(data["clan_tech_vials"]),
+          int(data["Eggshells"]), 
           now_utc,
       ),
   )
