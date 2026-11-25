@@ -132,14 +132,14 @@ with st.form("clan_resources_form"):
     )
   with e3:
     pets_to_merge = st.number_input(
-        "Pets/Eggs Available to Merge",
+        "Mergers Available",
         min_value=0,
         step=1,
         value=int(existing.get("pets_to_merge", 0)),
     )
   e4, e5, e6 = st.columns(3, wrap=False)
   ex_egg_summon_l = existing.get("egg_summon_lvl", "0_0_0")
-  ex_e1, ex_e1, ex_e3 = skill_lvl_parse(ex_egg_summon_l)
+  ex_e1, ex_e2, ex_e3 = skill_lvl_parse(ex_egg_summon_l)
   with e4:
     egg_summon_lvl1 = st.number_input(
         "Egg Summon Lvl",
@@ -166,7 +166,7 @@ with st.form("clan_resources_form"):
     )
   egg_summon_lvl=f"{egg_summon_lvl1}_{egg_summon_lvl2}_{egg_summon_lvl3}"
 
-  m1, m2, m3 = st.columns(3, wrap=False)
+  m1, m2 = st.columns(2, wrap=False)
   with m1:
     mount_clockwinders = st.number_input(
         "Mount Clockwinders",
@@ -175,6 +175,13 @@ with st.form("clan_resources_form"):
         value=int(existing.get("mount_clockwinders", 0)),
     )
   with m2:
+    mount_mergers = st.number_input(
+        "Mount Mergers",
+        min_value=0,
+        step=1,
+        value=int(existing.get("mount_mergers", 0)),
+    )
+  with m3:
     mount_cost_reduction = st.slider(
         "Mount Cost Reduction",
         min_value=0,
@@ -182,7 +189,7 @@ with st.form("clan_resources_form"):
         max_value=30, 
         value=int(existing.get("mount_cost_reduction", 0)),
     )
-  with m3:
+  with m4:
     mount_extra_chance = st.slider(
         "Mount Summon Extra Chance",
         min_value=0,
@@ -191,10 +198,10 @@ with st.form("clan_resources_form"):
         value=int(existing.get("mount_extra_chance", 0)),
     )
 
-  m4, m5, my = st.columns(3,wrap=False)
+  m5, m6, m7 = st.columns(3,wrap=False)
   ex_mount_lvl = existing.get("mount_summon_lvl", "0_0_0") 
   ex_e1, ex_e2, ex_e3 = skill_lvl_parse(ex_mount_lvl)
-  with m4:
+  with m5:
     mount_summon_lvl1 = st.number_input(
         "Mount Summon Lvl",
         min_value=0,
@@ -202,7 +209,7 @@ with st.form("clan_resources_form"):
         max_value=150, 
         value=ex_e1
     )
-  with m5:
+  with m6:
     mount_summon_lvl2 = st.number_input(
         "Level Progression",
         min_value=0,
@@ -210,7 +217,7 @@ with st.form("clan_resources_form"):
         max_value=620,
         value=ex_e2
     )
-  with m6:
+  with m7:
     mount_summon_lvl3 = st.number_input(
         "Mount Ascensions",
         min_value=0,
