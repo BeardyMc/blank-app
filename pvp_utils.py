@@ -18,12 +18,12 @@ RESOURCE_COLUMNS = [
     "skill_tickets",
     "skill_summon_cost",
     "skill_level",
+    "pets_to_merge",
     "egg_summon_lvl",
     "egg_summon_chance",
-    "pets_to_merge",
-    "mount_summon_lvl",
     "mount_clockwinders",
-    "mount_summon_cost",
+    "mount_summon_lvl",
+    "mount_cost_reduction",
     "mount_extra_chance",
     "clan_tech_vials",
     "updated_at",
@@ -47,14 +47,14 @@ CREATE TABLE IF NOT EXISTS player_resources (
     hammers INTEGER NOT NULL DEFAULT 0,
     skill_tickets INTEGER NOT NULL DEFAULT 0,
     skill_summon_cost INTEGER NOT NULL DEFAULT 0,
-    skill_level INTEGER NOT NULL DEFAULT 0,
-    egg_summon_lvl INTEGER NOT NULL DEFAULT 0,
-    egg_summon_chance REAL NOT NULL DEFAULT 0.0,
-    pets_to_merge INTEGER NOT NULL DEFAULT 0,
-    mount_summon_lvl INTEGER NOT NULL DEFAULT 0,
+    skill_level TEXT NOT NULL DEFAULT "0_0_0",
+    pets_to_merge INTEGER NOT NULL DEFAULT 0, 
+    egg_summon_lvl TEXT NOT NULL DEFAULT "0_0_0",
+    egg_summon_chance INTEGER NOT NULL DEFAULT 0,
     mount_clockwinders INTEGER NOT NULL DEFAULT 0,
-    mount_summon_cost INTEGER NOT NULL DEFAULT 0,
-    mount_extra_chance REAL NOT NULL DEFAULT 0.0,
+    mount_summon_lvl TEXT NOT NULL DEFAULT "0_0_0",
+    mount_cost_reduction INTEGER NOT NULL DEFAULT 0,
+    mount_extra_chance INTEGER NOT NULL DEFAULT 0,
     clan_tech_vials INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL
 )
@@ -114,26 +114,7 @@ def get_turso_conn():
   db_url = st.secrets["TURSO_DATABASE_URL"]
   auth_token = st.secrets["TURSO_AUTH_TOKEN"]
   conn = libsql.connect(database=db_url, auth_token=auth_token)
-  conn.execute("""
-        CREATE TABLE IF NOT EXISTS player_resources (
-            player_name TEXT PRIMARY KEY,
-            damage_val REAL NOT NULL DEFAULT 0.0,
-            health_val REAL NOT NULL DEFAULT 0.0,
-            hammers INTEGER NOT NULL DEFAULT 0,
-            skill_tickets INTEGER NOT NULL DEFAULT 0,
-            skill_summon_cost INTEGER NOT NULL DEFAULT 0,
-            skill_level INTEGER NOT NULL DEFAULT 0,
-            egg_summon_lvl INTEGER NOT NULL DEFAULT 0,
-            egg_summon_chance REAL NOT NULL DEFAULT 0.0,
-            pets_to_merge INTEGER NOT NULL DEFAULT 0,
-            mount_summon_lvl INTEGER NOT NULL DEFAULT 0,
-            mount_clockwinders INTEGER NOT NULL DEFAULT 0,
-            mount_summon_cost INTEGER NOT NULL DEFAULT 0,
-            mount_extra_chance REAL NOT NULL DEFAULT 0.0,
-            clan_tech_vials INTEGER NOT NULL DEFAULT 0,
-            updated_at TEXT NOT NULL
-        )
-    """)
+  conn.execute(CREATE_PLAYER_RESOURCES_SQL)
   conn.commit()
   return conn
 
@@ -159,7 +140,7 @@ def upsert_player_resources(data: dict):
             player_name, damage_val, health_val,
             hammers, skill_tickets, skill_summon_cost, skill_level,
             egg_summon_lvl, egg_summon_chance, pets_to_merge,
-            mount_summon_lvl, mount_clockwinders, mount_summon_cost,
+            mount_summon_lvl, mount_clockwinders,     mount_cost_reduction,
             mount_extra_chance, clan_tech_vials, updated_at
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -175,7 +156,7 @@ def upsert_player_resources(data: dict):
             pets_to_merge = excluded.pets_to_merge,
             mount_summon_lvl = excluded.mount_summon_lvl,
             mount_clockwinders = excluded.mount_clockwinders,
-            mount_summon_cost = excluded.mount_summon_cost,
+            mount_cost_reduction = excluded.mount_cost_reduction,
             mount_extra_chance = excluded.mount_extra_chance,
             clan_tech_vials = excluded.clan_tech_vials,
             updated_at = excluded.updated_at
@@ -189,12 +170,12 @@ def upsert_player_resources(data: dict):
           int(data["skill_summon_cost"]),
           int(data["skill_level"]),
           int(data["egg_summon_lvl"]),
-          float(data["egg_summon_chance"]),
+          int(data["egg_summon_chance"]),
           int(data["pets_to_merge"]),
           int(data["mount_summon_lvl"]),
           int(data["mount_clockwinders"]),
-          int(data["mount_summon_cost"]),
-          float(data["mount_extra_chance"]),
+          int(data["mount_cost_reduction"]),
+          int(data["mount_extra_chance"]),
           int(data["clan_tech_vials"]),
           now_utc,
       ),
@@ -664,7 +645,7 @@ def load_rosters(clan):
       raw_text = base64.b64decode(payload["content"]).decode("utf-8")
       return json.loads(raw_text)
     except Exception as exc:
-      st.error("GitHub load error")
+      st.error(f"GitHub load error for {clan}")
 
   return {}
 
