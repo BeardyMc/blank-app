@@ -92,7 +92,7 @@ with st.form("clan_resources_form"):
         "Skill Level",
         min_value=0,
         step=1,
-        max=150,
+        max_value=150,
         value=ex_L
     )
   with s6:
@@ -100,7 +100,7 @@ with st.form("clan_resources_form"):
         "Level Progression",
         min_value=0,
         step=1,
-        max=1500,
+        max_value=1500,
         value=ex_sl
     )
   with s7:
@@ -108,7 +108,7 @@ with st.form("clan_resources_form"):
         "Skill Ascensions",
         min_value=0,
         step=1,
-        max=3,
+        max_value=3,
         value=ex_A
     )
   skill_level = f"{int(skill_level1)}_{int(skill_level2)}_{int(skill_level3)}"
@@ -199,7 +199,7 @@ with st.form("clan_resources_form"):
         "Mount Summon Lvl",
         min_value=0,
         step=1,
-        max=150, 
+        max_value=150, 
         value=ex_e1
     )
   with m5:
@@ -207,7 +207,7 @@ with st.form("clan_resources_form"):
         "Level Progression",
         min_value=0,
         step=1,
-        max=620,
+        max_value=620,
         value=ex_e2
     )
   with m6:
@@ -215,7 +215,7 @@ with st.form("clan_resources_form"):
         "Mount Ascensions",
         min_value=0,
         step=1,
-        max=3,
+        max_value=3,
         value=ex_e3
     )
   mount_summon_lvl = f"{mount_summon_lvl1} _{mount_summon_lvl2}_{mount_summon_lvl3}"
