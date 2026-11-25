@@ -111,7 +111,7 @@ with st.form("clan_resources_form"):
         max=3,
         value=ex_A
     )
-  skill_level = f"{int(skill_level1)}_{int(skill_level2)}_{int(skill_level3)}
+  skill_level = f"{int(skill_level1)}_{int(skill_level2)}_{int(skill_level3)}"
 
 
   e1, e2, e3 = st.columns(3, wrap=False)
@@ -218,7 +218,7 @@ with st.form("clan_resources_form"):
         max=3,
         value=ex_e3
     )
-  mount_summon_lvl = f"{mount_summon_lvl2} _{mount_summon_lvl2}_{mount_summon_lvl2}"
+  mount_summon_lvl = f"{mount_summon_lvl1} _{mount_summon_lvl2}_{mount_summon_lvl3}"
 
   if st.form_submit_button("Save to Turso", use_container_width=True):
     try:
