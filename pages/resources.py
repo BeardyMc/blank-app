@@ -1,5 +1,6 @@
 import streamlit as st
 from pvp_utils import (
+    ensure_player_resources_table,
     format_compact_input,
     load_player_resources,
     parse_stat_value,
@@ -8,7 +9,12 @@ from pvp_utils import (
 
 st.title("Clan Resources & Combat Stats")
 
-# Pull player names from existing clan roster in session_state if available
+# First-run check: ensure the Turso table exists before querying
+if "turso_resources_ready" not in st.session_state:
+  ensure_player_resources_table()
+  st.session_state.turso_resources_ready = True
+
+# Pull player names from existing clan roster in session_state if available, else fallback
 if "players_df" in st.session_state and not st.session_state.players_df.empty:
   roster_names = sorted(
       st.session_state.players_df["Player Name"].dropna().unique().tolist()
@@ -28,7 +34,6 @@ if not saved_df.empty and selected_player in saved_df["player_name"].values:
 with st.form("clan_resources_form"):
   st.subheader(f"Stats & Resources — {selected_player}")
 
-  # Damage & Health (accepts text like '13b' -> 13000000000)
   d1, d2 = st.columns(2)
   with d1:
     damage_input = st.text_input(
@@ -41,7 +46,6 @@ with st.form("clan_resources_form"):
         value=format_compact_input(existing.get("health_val", 0.0)),
     )
 
-  # Hammers, Skill Tickets, Skill Summon Cost, Skill Level
   s1, s2, s3, s4 = st.columns(4)
   with s1:
     hammers = st.number_input(
@@ -69,7 +73,6 @@ with st.form("clan_resources_form"):
         value=int(existing.get("skill_level", 0)),
     )
 
-  # Egg Summon Lvl, Egg Summon Chance, Pets Available to Merge, Clan Tech Vials
   e1, e2, e3, e4 = st.columns(4)
   with e1:
     egg_summon_lvl = st.number_input(
@@ -101,7 +104,6 @@ with st.form("clan_resources_form"):
         value=int(existing.get("clan_tech_vials", 0)),
     )
 
-  # Mount Summon Lvl, Mount Clockwinders, Mount Summon Cost, Mount Summon Extra Chance
   m1, m2, m3, m4 = st.columns(4)
   with m1:
     mount_summon_lvl = st.number_input(
@@ -163,4 +165,3 @@ with st.form("clan_resources_form"):
 st.divider()
 st.subheader("Saved Clan Resources")
 st.dataframe(load_player_resources(), use_container_width=True, hide_index=True)
- 
