@@ -181,6 +181,7 @@ with st.form("clan_resources_form"):
         step=1,
         value=int(existing.get("mount_mergers", 0)),
     )
+  m3, m4 = st.columns(2, wrap=False)
   with m3:
     mount_cost_reduction = st.slider(
         "Mount Cost Reduction",
