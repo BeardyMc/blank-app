@@ -630,21 +630,25 @@ def assign_rank_points(df, power_col="Power (b)"):
   return out.drop(columns=["_sort_power"])
 
 
-def _get_github_config():
+def _get_github_config(clan):
   """Reads GitHub repo settings from `st.secrets`."""
   try:
     token = st.secrets["GITHUB_TOKEN"]
     repo = st.secrets["GITHUB_REPO"]
-    path = st.secrets.get("GITHUB_DATA_PATH", "data/pvp_rosters.json")
+    if clan == "clan":
+        path = st.secrets.get("GITHUB_DATA_PATH", "data/clan_rosters.json")
+    elif clan == "enemy":
+        path = st.secrets.get("GITHUB_DATA_PATH", "data/enemy_rosters.json")
+    
     branch = st.secrets.get("GITHUB_BRANCH", "main")
     return token, repo, path, branch
   except (KeyError, FileNotFoundError):
     return None, None, None, None
 
 
-def load_rosters():
+def load_rosters(clan):
   """Fetches `data/pvp_rosters.json` from GitHub API, falling back to local disk."""
-  token, repo, path, branch = _get_github_config()
+  token, repo, path, branch = _get_github_config(clan)
 
   if token and repo:
     url = f"https://api.github.com/repos/{repo}/contents/{path}"
