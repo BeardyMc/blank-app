@@ -125,8 +125,8 @@ with st.form("clan_resources_form"):
   with e2:
     egg_summon_chance = st.number_input(
         "Egg Summon Chance",
-        min_value=0
-        step=1
+        min_value=0,
+        step=1,
         max_value=50,
         value=int(existing.get("egg_summon_chance", 0)),
     )
@@ -145,7 +145,7 @@ with st.form("clan_resources_form"):
         "Egg Summon Lvl",
         min_value=0,
         step=1,
-        max_value=150
+        max_value=150, 
         value=ex_e1
     )
   with e5:
@@ -153,7 +153,7 @@ with st.form("clan_resources_form"):
         "Levle Progression",
         min_value=0,
         step=1,
-        max_value=473
+        max_value=473, 
         value=ex_e2
     )
   with e6:
@@ -186,7 +186,7 @@ with st.form("clan_resources_form"):
     mount_extra_chance = st.slider(
         "Mount Summon Extra Chance",
         min_value=0,
-        step=1
+        step=1, 
         max_value=50, 
         value=int(existing.get("mount_extra_chance", 0)),
     )
