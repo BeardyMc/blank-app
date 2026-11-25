@@ -40,7 +40,7 @@ if "push_unlocked" not in st.session_state:
   st.session_state.push_unlocked = False
 
 with st.expander("Save / Push Rosters to GitHub", expanded=True):
-  expected_push_pwd = st.secrets.get("PUSH_PASSWORD", "")
+  expected_push_pwd = st.secrets.get("password_user", "")
 
   if not st.session_state.push_unlocked:
     with st.form("push_auth_form", clear_on_submit=True):
@@ -73,13 +73,15 @@ with st.expander("Save / Push Rosters to GitHub", expanded=True):
       if st.button(
           "Push Rosters to GitHub", key="push_rosters_btn", width="stretch"
       ):
-        ok, msg = save_rosters_to_github(
+        ok, msg = save_rosters_to_github( 
+            "clan", 
             st.session_state.players_df,
             st.session_state.enemies_df,
             commit_message=final_commit_msg,
         )
         if ok:
-          st.success(msg)
+          st.session_state.players_df = updated_df
+          st.success(msg) 
         else:
           st.error(msg)
     with col_lock:
