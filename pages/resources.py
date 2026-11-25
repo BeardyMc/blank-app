@@ -31,10 +31,20 @@ if not saved_df.empty and selected_player in saved_df["player_name"].values:
       saved_df[saved_df["player_name"] == selected_player].iloc[0].to_dict()
   )
 
+def skill_lvl_parse(skill_lvl_t: str):
+  """Parses 'L_sl_A' (e.g. '10_20_2') into (level, sub_level, ascension)."""
+  parts = str(skill_lvl_t).strip().split("_")
+  if len(parts) != 3:
+    raise ValueError(f"Expected 'L_sl_A' format, got '{skill_lvl_t}'")
+
+  lvl, sub_lvl, ascension = (int(p) for p in parts)
+  return lvl, sub_lvl, ascension
+
+
 with st.form("clan_resources_form"):
   st.subheader(f"Stats & Resources — {selected_player}")
 
-  d1, d2 = st.columns(2)
+  d1, d2 = st.columns(2, wrap=False)
   with d1:
     damage_input = st.text_input(
         "Damage (e.g. 13b)",
@@ -46,94 +56,169 @@ with st.form("clan_resources_form"):
         value=format_compact_input(existing.get("health_val", 0.0)),
     )
 
-  s1, s2, s3, s4 = st.columns(4)
+  s1, s2 = st.columns(2,wrap=False)
   with s1:
     hammers = st.number_input(
         "Hammers", min_value=0, step=1, value=int(existing.get("hammers", 0))
     )
   with s2:
+    clan_tech_vials = st.number_input(
+        "Clan Tech Vials",
+        min_value=0,
+        step=1,
+        value=int(existing.get("clan_tech_vials", 0)),
+    ) 
+  s3, s4 = st.columns(2,wrap=False)
+  with s3:
     skill_tickets = st.number_input(
         "Skill Tickets",
         min_value=0,
         step=1,
         value=int(existing.get("skill_tickets", 0)),
     )
-  with s3:
-    skill_summon_cost = st.number_input(
-        "Skill Summon Cost",
-        min_value=0,
-        step=1,
-        value=int(existing.get("skill_summon_cost", 0)),
-    )
   with s4:
-    skill_level = st.number_input(
+    skill_summon_cost = st.slider(
+        "Skill Summon Cost",
+        min_value=200,
+        step=1,
+        max_value=140
+        value=int(existing.get("skill_summon_cost", 200)),
+    )
+  s5, s6, s7 = st.columns(3, wrap=False)
+  existing_skill_lvl = existing.get("skill_level", "0_0_0")
+  ex_L, ex_sl, ex_A = skill_lvl_parse(existing_skill_lvl)
+  with s5:
+    skill_level1 = st.number_input(
         "Skill Level",
         min_value=0,
         step=1,
-        value=int(existing.get("skill_level", 0)),
+        max=150,
+        value=ex_L
     )
-
-  e1, e2, e3, e4 = st.columns(4)
-  with e1:
-    egg_summon_lvl = st.number_input(
-        "Egg Summon Lvl",
+  with s6:
+    skill_level2 = st.number_input(
+        "Level Progression",
         min_value=0,
         step=1,
-        value=int(existing.get("egg_summon_lvl", 0)),
+        max=1500,
+        value=ex_sl
+    )
+  with s7:
+    skill_level3 = st.number_input(
+        "Skill Ascensions",
+        min_value=0,
+        step=1,
+        max=3,
+        value=ex_A
+    )
+  skill_level = f"{int(skill_level1)}_{int(skill_level2)}_{int(skill_level3)}
+
+
+  e1, e2, e3 = st.columns(3, wrap=False)
+  with e1:
+    eggshells = st.number_input(
+        "Eggshells",
+        min_value=0
+        step=1,
+        value=int(existing.get("Eggshells", 0)),
     )
   with e2:
     egg_summon_chance = st.number_input(
         "Egg Summon Chance",
-        min_value=0.0,
-        step=0.1,
-        format="%.2f",
-        value=float(existing.get("egg_summon_chance", 0.0)),
+        min_value=0
+        step=1
+        max_value=50
+        value=int(existing.get("egg_summon_chance", 0)),
     )
   with e3:
     pets_to_merge = st.number_input(
-        "Pets Available to Merge",
+        "Pets/Eggs Available to Merge",
         min_value=0,
         step=1,
         value=int(existing.get("pets_to_merge", 0)),
     )
+  e4, e5, e6 = st.columns(3, wrap=False)
+  ex_egg_summon_l = existing.get("egg_summon_lvl", "0_0_0")
+  ex_e1, ex_e1, ex_e3 = skill_lvl_parse(ex_egg_summon_l)
   with e4:
-    clan_tech_vials = st.number_input(
-        "Clan Tech Vials",
+    egg_summon_lvl1 = st.number_input(
+        "Egg Summon Lvl",
         min_value=0,
         step=1,
-        value=int(existing.get("clan_tech_vials", 0)),
+        max_value=150
+        value=ex_e1
     )
+  with e5:
+    egg_summon_lvl2 = st.number_input(
+        "Levle Progression",
+        min_value=0,
+        step=1,
+        max_value=473
+        value=ex_e2
+    )
+  with e6:
+    egg_summon_lvl3 = st.number_input(
+        "Pet Ascensions",
+        min_value=0,
+        step=1,
+        max_value=3
+        value=ex_e3
+    )
+  egg_summon_lvl=f"{egg_summon_lvl1}_{egg_summon_lvl2}_{egg_summon_lvl3}"
 
-  m1, m2, m3, m4 = st.columns(4)
+  m1, m2, m3 = st.columns(3, wrap=False)
   with m1:
-    mount_summon_lvl = st.number_input(
-        "Mount Summon Lvl",
-        min_value=0,
-        step=1,
-        value=int(existing.get("mount_summon_lvl", 0)),
-    )
-  with m2:
     mount_clockwinders = st.number_input(
         "Mount Clockwinders",
         min_value=0,
         step=1,
         value=int(existing.get("mount_clockwinders", 0)),
     )
-  with m3:
-    mount_summon_cost = st.number_input(
-        "Mount Summon Cost",
+  with m2:
+    mount_cost_reduction = st.slider(
+        "Mount Cost Reduction",
         min_value=0,
         step=1,
-        value=int(existing.get("mount_summon_cost", 0)),
+        max_value=30
+        value=int(existing.get("mount_cost_reduction", 0)),
     )
-  with m4:
-    mount_extra_chance = st.number_input(
+  with m3:
+    mount_extra_chance = st.slider(
         "Mount Summon Extra Chance",
-        min_value=0.0,
-        step=0.1,
-        format="%.2f",
-        value=float(existing.get("mount_extra_chance", 0.0)),
+        min_value=0,
+        step=1
+        max_value=50
+        value=int(existing.get("mount_extra_chance", 0)),
     )
+
+  m4, m5, my = st.columns(3,wrap=False)
+  ex_mount_lvl = existing.get("mount_summon_lvl", "0_0_0") 
+  ex_e1, ex_e2, ex_e3 = skill_lvl_parse(ex_mount_lvl)
+  with m4:
+    mount_summon_lvl1 = st.number_input(
+        "Mount Summon Lvl",
+        min_value=0,
+        step=1,
+        max=150
+        value=ex_e1
+    )
+  with m5:
+    mount_summon_lvl2 = st.number_input(
+        "Level Progression",
+        min_value=0,
+        step=1,
+        max=150
+        value=ex_e2
+    )
+  with m6:
+    mount_summon_lvl3 = st.number_input(
+        "Mount Ascensions",
+        min_value=0,
+        step=1,
+        max=3
+        value=ex_e3
+    )
+  mount_summon_lvl = f"{mount_summon_lvl2} _{mount_summon_lvl2}_{mount_summon_lvl2}"
 
   if st.form_submit_button("Save to Turso", use_container_width=True):
     try:
@@ -150,6 +235,7 @@ with st.form("clan_resources_form"):
           "skill_tickets": skill_tickets,
           "skill_summon_cost": skill_summon_cost,
           "skill_level": skill_level,
+          "Eggshells": eggshells,
           "egg_summon_lvl": egg_summon_lvl,
           "egg_summon_chance": egg_summon_chance,
           "pets_to_merge": pets_to_merge,
