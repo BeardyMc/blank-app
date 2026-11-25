@@ -39,6 +39,36 @@ _MULTIPLIERS = {
 }
 
 
+CREATE_PLAYER_RESOURCES_SQL = """
+CREATE TABLE IF NOT EXISTS player_resources (
+    player_name TEXT PRIMARY KEY,
+    damage_val REAL NOT NULL DEFAULT 0.0,
+    health_val REAL NOT NULL DEFAULT 0.0,
+    hammers INTEGER NOT NULL DEFAULT 0,
+    skill_tickets INTEGER NOT NULL DEFAULT 0,
+    skill_summon_cost INTEGER NOT NULL DEFAULT 0,
+    skill_level INTEGER NOT NULL DEFAULT 0,
+    egg_summon_lvl INTEGER NOT NULL DEFAULT 0,
+    egg_summon_chance REAL NOT NULL DEFAULT 0.0,
+    pets_to_merge INTEGER NOT NULL DEFAULT 0,
+    mount_summon_lvl INTEGER NOT NULL DEFAULT 0,
+    mount_clockwinders INTEGER NOT NULL DEFAULT 0,
+    mount_summon_cost INTEGER NOT NULL DEFAULT 0,
+    mount_extra_chance REAL NOT NULL DEFAULT 0.0,
+    clan_tech_vials INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL
+)
+"""
+
+
+def ensure_player_resources_table():
+  """Creates player_resources in Turso if it doesn't exist yet."""
+  conn = get_turso_conn()
+  conn.execute(CREATE_PLAYER_RESOURCES_SQL)
+  conn.commit()
+
+
+
 def parse_stat_value(raw_value, default: float = 0.0) -> float:
   """Converts strings like '13b', '4.5t', '250m', or '13000000000' into a number."""
   if raw_value is None:
