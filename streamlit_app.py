@@ -1,3 +1,5 @@
+import base64
+from pathlib import Path
 import pandas as pd
 from pvp_utils import (
     _filter_active_entries,
