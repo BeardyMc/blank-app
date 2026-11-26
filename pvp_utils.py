@@ -731,17 +731,23 @@ def sort_roster_for_save(df, power_col="Power (b)"):
   return out.reset_index(drop=True)
 
 
-def save_roster_to_github(
-    roster_type,
+def _push_single_roster(
+    roster_type: str,
     roster_df,
-    commit_message=None,
-    power_col="power",
+    commit_message: str,
+    power_col: str = "power",
 ):
-  """Sorts and pushes a single roster DataFrame ('clan' or 'enemy') to GitHub."""
-  normalized_type = "enemy" if str(roster_type).strip().lower() == "enemy" else "clan"
+  """Sorts and pushes one roster ('clan' or 'enemy') to its GitHub file."""
+  normalized_type = (
+      "enemy" if str(roster_type).strip().lower() == "enemy" else "clan"
+  )
   token, repo, path, branch = _get_github_config(normalized_type)
   if not token or not repo:
-    return False, "Missing GITHUB_TOKEN or GITHUB_REPO in secrets."
+    return (
+        False,
+        roster_df,
+        "Missing GITHUB_TOKEN or GITHUB_REPO in secrets.",
+    )
 
   url = f"https://api.github.com/repos/{repo}/contents/{path}"
   headers = {
@@ -760,44 +766,88 @@ def save_roster_to_github(
       else default_msg
   )
 
-  try:
-    get_resp = requests.get(
-        url, headers=headers, params={"ref": branch}, timeout=10
+  get_resp = requests.get(
+      url, headers=headers, params={"ref": branch}, timeout=10
+  )
+  get_resp.raise_for_status()
+  current_sha = get_resp.json()["sha"]
+
+  sorted_df = sort_roster_for_save(roster_df, power_col=power_col)
+  records = sorted_df.to_dict(orient="records")
+
+  if normalized_type == "enemy":
+    roster_payload = {"enemies": records}
+  else:
+    # Strip raw power from clan roster records if clan power comes from SQL
+    clan_records = [
+        {k: v for k, v in rec.items() if k != power_col}
+        for rec in records
+    ]
+    roster_payload = {"players": clan_records}
+
+  encoded_content = base64.b64encode(
+      json.dumps(roster_payload, indent=2).encode("utf-8")
+  ).decode("utf-8")
+
+  put_body = {
+      "message": final_msg,
+      "content": encoded_content,
+      "sha": current_sha,
+      "branch": branch,
+  }
+  put_resp = requests.put(url, headers=headers, json=put_body, timeout=10)
+  put_resp.raise_for_status()
+
+  return (
+      True,
+      sorted_df,
+      f"Pushed `{normalized_type}` roster to `{path}` on `{branch}`.",
+  )
+
+
+def save_rosters_to_github(
+    players_df,
+    enemies_df,
+    commit_message=None,
+    power_col="power",
+):
+  """Sorts and pushes both clan and enemy rosters to their respective GitHub files."""
+  token, repo, _, _ = _get_github_config("clan")
+  if not token or not repo:
+    return (
+        False,
+        players_df,
+        enemies_df,
+        "Missing GITHUB_TOKEN or GITHUB_REPO in secrets.",
     )
-    get_resp.raise_for_status()
-    current_sha = get_resp.json()["sha"]
 
-    sorted_df = sort_roster_for_save(roster_df, power_col=power_col)
-    records = sorted_df.to_dict(orient="records")
+  messages = []
+  sorted_players = players_df
+  sorted_enemies = enemies_df
 
-    # Match the top-level JSON structure each file uses
-    if normalized_type == "enemy":
-      roster_payload = {"enemies": records}
-    else:
-      # For clan_rosters.json, strip Power (b) if you only want name & rank stored there
-      clan_records = [
-          {k: v for k, v in rec.items() if k != "power"}
-          for rec in records
-      ]
-      roster_payload = {"players": clan_records}
+  try:
+    ok_clan, sorted_players, msg_clan = _push_single_roster(
+        "clan", players_df, commit_message, power_col=power_col
+    )
+    messages.append(msg_clan)
 
-    encoded_content = base64.b64encode(
-        json.dumps(roster_payload, indent=2).encode("utf-8")
-    ).decode("utf-8")
+    ok_enemy, sorted_enemies, msg_enemy = _push_single_roster(
+        "enemy", enemies_df, commit_message, power_col=power_col
+    )
+    messages.append(msg_enemy)
 
-    put_body = {
-        "message": final_msg,
-        "content": encoded_content,
-        "sha": current_sha,
-        "branch": branch,
-    }
-    put_resp = requests.put(url, headers=headers, json=put_body, timeout=10)
-    put_resp.raise_for_status()
-
-    return True, sorted_df, f"Pushed sorted `{normalized_type}` roster to `{path}` on `{branch}`."
+    if ok_clan and ok_enemy:
+      return True, sorted_players, sorted_enemies, " | ".join(messages)
+    return False, sorted_players, sorted_enemies, " | ".join(messages)
   except Exception as exc:
-    print(f"GitHub push error ({normalized_type}): {exc}", flush=True)
-    return False, roster_df, f"GitHub push failed: {exc}"
+    print(f"GitHub push error: {exc}", flush=True)
+    return (
+        False,
+        sorted_players,
+        sorted_enemies,
+        f"GitHub push failed: {exc}",
+    )
+ 
   
 
 def load_battles():
