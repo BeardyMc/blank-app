@@ -17,7 +17,8 @@ if "turso_resources_ready" not in st.session_state:
 # Pull player names from existing clan roster in session_state if available, else fallback
 if "players_df" in st.session_state and not st.session_state.players_df.empty:
   roster_names = sorted(
-      st.session_state.players_df["Player Name"].dropna().unique().tolist()
+      st.session_state.players_df["Player Name"].dropna().unique().tolist(),
+      key=str.lower,
   )
 else:
   roster_names = ["Mypleasure", "Kitty87", "BeardyMcBeard"]
