@@ -182,18 +182,28 @@ with st.expander("Save / Push Rosters to GitHub", expanded=True):
         st.session_state.push_unlocked = False
         st.rerun()
 
+
+
+
+
+
 if st.session_state.push_unlocked:
   st.subheader("Import Enemy Roster From Screenshots")
 
   uploaded_files = st.file_uploader(
       "Upload enemy roster screenshots",
-  #    type=["png", "jpg", "jpeg", "webp"],
+      type=["png", "jpg", "jpeg", "webp"],
       accept_multiple_files=True,
       key="enemy_roster_uploads_v2",
   )
-  st.write("push_unlocked:",st.session_state.get("push_unlocked"))
-  st.write("uploaded_files count:", len(uploaded_files) if uploaded_files else 0)
 
+  if uploaded_files:
+    st.caption(
+        "Attached: "
+        + ", ".join(f"{f.name} ({f.type}, {f.size} B)" for f in uploaded_files)
+    )
+  else:
+    st.caption("No files attached yet.")
 
   if st.button(
       "Extract Enemy Roster",
@@ -206,7 +216,6 @@ if st.session_state.push_unlocked:
         mime = f.type or "image/png"
         all_rows.extend(extract_enemies_from_image(f.getvalue(), mime))
 
-    # Deduplicate by Player Name (case-insensitive), keeping first non-null raw power
     deduped = {}
     for r in all_rows:
       key = r["Player Name"].lower()
@@ -273,15 +282,3 @@ if st.session_state.push_unlocked:
       del st.session_state["pending_enemy_ocr_df"]
       st.success("Enemy roster updated with raw power values.")
       st.rerun()
-
-
-
-test_files = st.file_uploader(
-      "Test screenshot upload",
-      accept_multiple_files=True,
-      key="test_enemy_uploads_v2",
-)
-st.write("test_files:", [f.name for f in test_files] if test_files else [])
-
-
-
