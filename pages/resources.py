@@ -261,6 +261,8 @@ with st.form("clan_resources_form"):
           "clan_tech_vials": clan_tech_vials,
       }):
         st.success(f"Saved {selected_player}'s stats and resources!")
+      elif selected_player == None:
+        st.error("Select player to update first troll!")
       else:
         st.error("Failed to update database. Please try again.") 
 
