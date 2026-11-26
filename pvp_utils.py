@@ -735,7 +735,7 @@ def save_roster_to_github(
     roster_type,
     roster_df,
     commit_message=None,
-    power_col="Power (b)",
+    power_col="power",
 ):
   """Sorts and pushes a single roster DataFrame ('clan' or 'enemy') to GitHub."""
   normalized_type = "enemy" if str(roster_type).strip().lower() == "enemy" else "clan"
@@ -776,7 +776,7 @@ def save_roster_to_github(
     else:
       # For clan_rosters.json, strip Power (b) if you only want name & rank stored there
       clan_records = [
-          {k: v for k, v in rec.items() if k != "Power (b)"}
+          {k: v for k, v in rec.items() if k != "power"}
           for rec in records
       ]
       roster_payload = {"players": clan_records}
