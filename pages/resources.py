@@ -50,7 +50,7 @@ def skill_lvl_parse(skill_lvl_t: str):
 
 
 with st.form("clan_resources_form"):
-  if selected_player = None:
+  if selected_player == None:
     st.subheader("Choose player you wish to update")
   else:
     st.subheader(f"Stats & Resources — {selected_player}")
