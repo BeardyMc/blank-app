@@ -11,8 +11,7 @@ import streamlit as st
 
 RESOURCE_COLUMNS = [
     "player_name",
-    "damage_val",
-    "health_val",
+    "power_val",
     "hammers",
     "skill_tickets",
     "skill_summon_cost",
@@ -43,8 +42,7 @@ _MULTIPLIERS = {
 CREATE_PLAYER_RESOURCES_SQL = """
 CREATE TABLE IF NOT EXISTS player_resources (
     player_name TEXT PRIMARY KEY,
-    damage_val REAL NOT NULL DEFAULT 0.0,
-    health_val REAL NOT NULL DEFAULT 0.0,
+    power_val REAL NOT NULL DEFAULT 0.0,
     hammers INTEGER NOT NULL DEFAULT 0,
     skill_tickets INTEGER NOT NULL DEFAULT 0,
     skill_summon_cost INTEGER NOT NULL DEFAULT 0,
@@ -142,16 +140,15 @@ def upsert_player_resources(data: dict) -> bool:
     conn.execute(
         """
         INSERT INTO player_resources (
-            player_name, damage_val, health_val,
+            player_name, power_val,
             hammers, skill_tickets, skill_summon_cost, skill_level,
             egg_summon_lvl, egg_summon_chance, pets_to_merge,
             mount_summon_lvl, mount_clockwinders, mount_cost_reduction,
             mount_extra_chance, clan_tech_vials, Eggshells, mount_mergers, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(player_name) DO UPDATE SET
-            damage_val = excluded.damage_val,
-            health_val = excluded.health_val,
+            power_val = excluded.power_val,
             hammers = excluded.hammers,
             skill_tickets = excluded.skill_tickets,
             skill_summon_cost = excluded.skill_summon_cost,
@@ -170,8 +167,7 @@ def upsert_player_resources(data: dict) -> bool:
         """,
         (
             data["player_name"],
-            float(data["damage_val"]),
-            float(data["health_val"]),
+            float(data["power_val"]),
             int(data["hammers"]),
             int(data["skill_tickets"]),
             int(data["skill_summon_cost"]),
