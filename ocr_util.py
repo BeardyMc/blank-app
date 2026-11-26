@@ -16,15 +16,16 @@ RAW_MULTIPLIERS = {
 
 # Known rank labels/aliases seen in roster lists (case-insensitive)
 RANK_MAP = {
-    "leader": "r5",
-    "r5": "r5",
-    "commander": "r4",
-    "captain": "r4",
-    "r4": "r4",
-    "r3": "r3",
-    "r2": "r2",
-    "r1": "r1",
+    "leader": "Leader",
+    "commander": "Commander",
+    "captain": "Captain",
+    "R1": "r1",
+    "R2": "r2",
+    "R3": "r3",
+    "R4": "r4",
+    "R5": "r5",
 }
+
 
 # Match standalone power strings like 516t, 3.82t, 14b, 850m (avoid timestamps like 40m ago / 4h)
 POWER_PATTERN = re.compile(r"^(\d+(?:[.,]\d+)?)\s*([kmbtqKMBTQ])$")
