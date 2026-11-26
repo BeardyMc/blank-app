@@ -81,13 +81,15 @@ with st.form("clan_resources_form"):
         value=int(existing.get("skill_tickets", 0)),
     )
   with s4:
-    skill_summon_cost = st.slider(
+    cost_options = list(range(200, 138, -2))
+    default_cost = int(existing.get("skill_summon_cost", 200))
+
+    skill_summon_cost = st.select_slider(
         "Skill Summon Cost",
-        min_value=200,
-        step=-2,
-        max_value=140, 
-        value=int(existing.get("skill_summon_cost", 200)),
+        options=cost_options,
+        value=default_cost,
     )
+    
   s5, s6, s7 = st.columns(3, wrap=False)
   existing_skill_lvl = existing.get("skill_level", "0_0_0")
   ex_L, ex_sl, ex_A = skill_lvl_parse(existing_skill_lvl)
