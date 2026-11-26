@@ -286,3 +286,13 @@ if st.session_state.push_unlocked:
       st.rerun()
 
 
+if True:
+  test_files = st.file_uploader(
+      "Test screenshot upload",
+      accept_multiple_files=True,
+      key="test_enemy_uploads_v2",
+  )
+  st.write("test_files:", [f.name for f in test_files] if test_files else [])
+
+
+
