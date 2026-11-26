@@ -126,7 +126,7 @@ def load_player_resources() -> pd.DataFrame:
   conn = get_turso_conn()
   cols_sql = ", ".join(RESOURCE_COLUMNS)
   rows = conn.execute(
-      f"SELECT {cols_sql} FROM player_resources ORDER BY player_name ASC"
+    f"SELECT {cols_sql} FROM player_resources ORDER BY LOWER(player_name) ASC"
   ).fetchall()
   if not rows:
     return pd.DataFrame(columns=RESOURCE_COLUMNS)
