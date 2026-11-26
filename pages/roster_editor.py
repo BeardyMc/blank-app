@@ -147,7 +147,8 @@ if st.session_state.push_unlocked:
     reviewed_df = st.data_editor(
         st.session_state["pending_enemy_ocr_df"],
         num_rows="dynamic",
-        use_container_width=True,
+        width="stretch",
+        height="content", 
         key="enemy_ocr_review_editor",
     )
 
