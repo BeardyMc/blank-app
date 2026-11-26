@@ -84,7 +84,7 @@ with st.form("clan_resources_form"):
     skill_summon_cost = st.slider(
         "Skill Summon Cost",
         min_value=200,
-        step=1,
+        step=-2,
         max_value=140, 
         value=int(existing.get("skill_summon_cost", 200)),
     )
