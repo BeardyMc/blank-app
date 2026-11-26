@@ -8,7 +8,7 @@ from google.genai import errors
 import pandas as pd
 from pydantic import BaseModel
 import streamlit as st
-from pvp_utils import format_si_3sf, save_roster_to_github, sum_roster_power
+from pvp_utils import format_si_3sf, save_rosters_to_github, sum_roster_power
 
 
 ### GEMINI SCREENSHOT READER ###
