@@ -198,7 +198,7 @@ if st.session_state.push_unlocked:
 
   uploaded_files = st.file_uploader(
       "Upload enemy roster screenshots",
-      type=["png", "jpg", "jpeg", "webp"],
+  #    type=["png", "jpg", "jpeg", "webp"],
       accept_multiple_files=True,
       key="enemy_roster_uploads_v2",
   )
