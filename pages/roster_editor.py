@@ -202,6 +202,9 @@ if st.session_state.push_unlocked:
       accept_multiple_files=True,
       key="enemy_roster_uploads",
   )
+  st.write("push_unlocked:",st.session_state.get("push_unlocked"))
+  st.write("uploaded_files count:", len(uploaded_files) if uploaded_files else 0)
+
 
   if st.button(
       "Extract Enemy Roster",
