@@ -14,7 +14,7 @@ RAW_MULTIPLIERS = {
     "q": 1e15,
 }
 
-# Known rank labels/aliases seen in roster lists (case-insensitive)
+# Known rank labels/aliases seen in roster lists
 RANK_MAP = {
     "leader": "Leader",
     "commander": "Commander",
@@ -26,6 +26,17 @@ RANK_MAP = {
     "R5": "r5",
 }
 
+# Matches standalone or trailing rank tokens like "R4", "r4", "Leader", "Commander", "Captain"
+TRAILING_RANK_RE = re.compile(
+    r"^(.*?)\s*\b(leader|commander|captain|r[1-5])\b\s*$",
+    re.IGNORECASE,
+)
+
+# Ignore clan summary / header lines
+IGNORE_LINE_RE = re.compile(
+    r"^(war progress|day \d+|tier-|total power|clan tech|members:|online|offline|\d+\s*[smhd]\s*ago)$",
+    re.IGNORECASE,
+)
 
 # Match standalone power strings like 516t, 3.82t, 14b, 850m (avoid timestamps like 40m ago / 4h)
 POWER_PATTERN = re.compile(r"^(\d+(?:[.,]\d+)?)\s*([kmbtqKMBTQ])$")
@@ -109,14 +120,13 @@ def _group_detections_into_rows(
 
 
 def _parse_single_row(row_tokens: list[dict]) -> Optional[dict]:
-  """Extracts Player Name, Rank, and raw power from one horizontal row of OCR tokens."""
   detected_power_raw = None
   detected_rank = ""
   name_candidates = []
 
   for tok in row_tokens:
     txt = tok["text"].strip()
-    if not txt or NOISE_PATTERN.match(txt):
+    if not txt or IGNORE_LINE_RE.match(txt):
       continue
 
     lower_txt = txt.lower()
@@ -124,20 +134,27 @@ def _parse_single_row(row_tokens: list[dict]) -> Optional[dict]:
       detected_rank = RANK_MAP[lower_txt]
       continue
 
-    # Check if token is a power value (e.g., 516t, 3.82t, 14b, 850m)
     compact = txt.replace(" ", "")
     if POWER_PATTERN.match(compact):
-      # If multiple numbers match, prefer the rightmost token on the row
       detected_power_raw = compact
       continue
 
-    # Filter out pure small integers (like row rank numbers 1, 2, 3...)
     if compact.isdigit() and len(compact) <= 3:
+      continue
+
+    # If a rank got glued onto the end of a name token (e.g. "SharksL o R4")
+    m_rank = TRAILING_RANK_RE.match(txt)
+    if m_rank:
+      prefix_name = m_rank.group(1).strip()
+      rank_token = m_rank.group(2).lower()
+      if rank_token in RANK_MAP and not detected_rank:
+        detected_rank = RANK_MAP[rank_token]
+      if prefix_name:
+        name_candidates.append(prefix_name)
       continue
 
     name_candidates.append(txt)
 
-  # A valid roster row should have at least a player name and a power value
   if not name_candidates or not detected_power_raw:
     return None
 
