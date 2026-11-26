@@ -127,15 +127,15 @@ with st.form("clan_resources_form"):
         step=1,
         value=int(existing.get("Eggshells", 0)),
     )
-  with e2:
-    egg_summon_chance = st.number_input(
+  with e3:
+    egg_summon_chance = st.slider(
         "Egg Summon Chance",
         min_value=0,
-        step=1,
+        step=2,
         max_value=50,
         value=int(existing.get("egg_summon_chance", 0)),
     )
-  with e3:
+  with e2:
     pets_to_merge = st.number_input(
         "Mergers Available",
         min_value=0,
