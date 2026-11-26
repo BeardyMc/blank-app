@@ -114,7 +114,7 @@ with st.form("clan_resources_form"):
         max_value=3,
         value=ex_A
     )
-  skill_level = f"{int(skill_level1)}_{int(skill_level2)}_{int(skill_level3)}"
+  skill_level = f"{int(skill_level1)} _{int(skill_level2)}_{int(skill_level3)}"
 
   st.divider() 
 
@@ -168,7 +168,7 @@ with st.form("clan_resources_form"):
         max_value=3, 
         value=ex_e3
     )
-  egg_summon_lvl=f"{egg_summon_lvl1}_{egg_summon_lvl2}_{egg_summon_lvl3}"
+  egg_summon_lvl=f"{egg_summon_lvl1} _{egg_summon_lvl2}_{egg_summon_lvl3}"
 
   st.divider()
 
@@ -232,7 +232,7 @@ with st.form("clan_resources_form"):
         max_value=3,
         value=ex_e3
     )
-  mount_summon_lvl = f"{mount_summon_lvl1} _{mount_summon_lvl2}_{mount_summon_lvl3}"
+  mount_summon_lvl = f"{mount_summon_lvl1}_{mount_summon_lvl2}_{mount_summon_lvl3}"
 
   st.divider()
 
