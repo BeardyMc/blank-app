@@ -1174,3 +1174,16 @@ def skill_lvl_parse(skill_lvl_t: str):
   lvl, sub_lvl, ascension = (int(p) for p in parts)
   return lvl, sub_lvl, ascension
 
+
+  latest_power_map = get_latest_turso_power_map()
+  if not players_df.empty and "Player Name" in players_df.columns:
+    players_df["power"] = (
+        players_df["Player Name"]
+        .astype(str)
+        .str.strip()
+        .map(latest_power_map)
+        .fillna(0.0)
+    )
+  else:
+    players_df["power"] = 0.0
+
