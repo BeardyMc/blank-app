@@ -379,7 +379,7 @@ def format_si_3sf(value):
   return f"{sign}{formatted_num}{suffix}"
 
 
-def sum_roster_power(df, power_col="Power (b)"):
+def sum_roster_power(df, power_col="power"):
   """Sums numeric power values safely, ignoring blank or non-numeric cells."""
   if df is None or df.empty or power_col not in df.columns:
     return 0.0
