@@ -44,7 +44,7 @@ def skill_lvl_parse(skill_lvl_t: str):
 with st.form("clan_resources_form"):
   st.subheader(f"Stats & Resources — {selected_player}")
 
-  d1, d2 = st.columns(2, vertical=alignment=" bottom", wrap=False)
+  d1, d2 = st.columns(2, vertical_alignment=" bottom", wrap=False)
   with d1:
     st.write("Power is needed for day 6 modelling, please update large jumps in power before day 6."
   with d2:
