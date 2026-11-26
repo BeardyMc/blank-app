@@ -5,6 +5,7 @@ from pvp_utils import (
     load_player_resources,
     parse_stat_value,
     upsert_player_resources,
+    skill_lvl_parse,
 )
 
 st.title("Clan Resources & Combat Stats")
@@ -38,15 +39,6 @@ if not saved_df.empty and selected_player in saved_df["player_name"].values:
   existing = (
       saved_df[saved_df["player_name"] == selected_player].iloc[0].to_dict()
   )
-
-def skill_lvl_parse(skill_lvl_t: str):
-  """Parses 'L_sl_A' (e.g. '10_20_2') into (level, sub_level, ascension)."""
-  parts = str(skill_lvl_t).strip().split("_")
-  if len(parts) != 3:
-    raise ValueError(f"Expected 'L_sl_A' format, got '{skill_lvl_t}'")
-
-  lvl, sub_lvl, ascension = (int(p) for p in parts)
-  return lvl, sub_lvl, ascension
 
 
 with st.form("clan_resources_form"):
@@ -122,7 +114,7 @@ with st.form("clan_resources_form"):
         max_value=3,
         value=ex_A
     )
-  skill_level = f"{int(skill_level1)} _{int(skill_level2)}_{int(skill_level3)}"
+  skill_level = f"{int(skill_level1)}_{int(skill_level2)}_{int(skill_level3)}"
 
   st.divider() 
 
@@ -176,7 +168,7 @@ with st.form("clan_resources_form"):
         max_value=3, 
         value=ex_e3
     )
-  egg_summon_lvl=f"{egg_summon_lvl1} _{egg_summon_lvl2}_{egg_summon_lvl3}"
+  egg_summon_lvl=f"{egg_summon_lvl1}_{egg_summon_lvl2}_{egg_summon_lvl3}"
 
   st.divider()
 
