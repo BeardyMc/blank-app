@@ -236,7 +236,6 @@ with st.form("clan_resources_form"):
   if st.form_submit_button("Save to Database", use_container_width=True):
     try:
       parsed_power = parse_stat_value(power_input)
-      parsed_health = parse_stat_value(health_input)
     except ValueError as err:
       st.error(str(err))
     else:
