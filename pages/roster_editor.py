@@ -4,8 +4,8 @@ from pvp_utils import format_si_3sf, save_roster_to_github, sum_roster_power
 
 st.title("Roster Editor")
 st.write(
-    "Update player powers or ranks here. Changes stay in your session until you"
-    " push them to GitHub."
+    "Update rosters or ranks here. Changes stay in your session until you"
+    " push them to GitHub. \n\nOur power vals come from database, enemy powers and ranks should be edited here"
 )
 
 DISPLAY_COLS = ["Rank", "Player Name", "power"]
@@ -54,8 +54,7 @@ with st.expander("Save / Push Rosters to GitHub", expanded=True):
           st.error("Incorrect push password.")
   else:
     st.caption(
-        "If updating player power, please leave a message for what and why you"
-        " edited."
+        "If updating, please leave a message for what and why you edited."
     )
     commit_msg_input = st.text_input(
         "Commit Message",
