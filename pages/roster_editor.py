@@ -2,9 +2,6 @@ import math
 import re
 from typing import Optional
 import time 
-from google import genai
-from google.genai import types
-from google.genai import errors 
 import pandas as pd
 from pydantic import BaseModel
 import streamlit as st
