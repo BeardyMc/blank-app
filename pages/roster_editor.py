@@ -99,9 +99,8 @@ with st.expander("Save / Push Rosters to GitHub", expanded=True):
 
 
 
-
 if st.session_state.push_unlocked:
-  st.subheader("EXPERIMENTAL:\n\nImport Enemy Roster From Screenshots")
+  st.subheader("Import Enemy Roster From Screenshots")
 
   uploaded_files = st.file_uploader(
       "Upload enemy roster screenshots",
@@ -110,7 +109,6 @@ if st.session_state.push_unlocked:
       key="enemy_roster_uploads_v2",
   )
 
-  # Keep uploaded file list visible right before the Extract button
   if uploaded_files:
     st.caption(
         "Attached: "
@@ -119,14 +117,26 @@ if st.session_state.push_unlocked:
   else:
     st.caption("No files attached yet.")
 
+  show_ocr_debug = st.checkbox("Show raw OCR row grouping (debug)", value=False)
+
   if st.button(
       "Extract Enemy Roster",
       disabled=not uploaded_files,
       key="btn_extract_enemies",
   ):
     with st.spinner("Reading screenshots with RapidOCR..."):
-      ocr_df, _ = extract_enemies_batch(uploaded_files)
+      ocr_df, debug_lines = extract_enemies_batch(
+          uploaded_files, return_debug=show_ocr_debug
+      )
     st.session_state["pending_enemy_ocr_df"] = ocr_df
+    st.session_state["pending_enemy_ocr_debug"] = (
+        debug_lines if show_ocr_debug else []
+    )
+
+  if show_ocr_debug and st.session_state.get("pending_enemy_ocr_debug"):
+    with st.expander("Raw OCR Row Grouping", expanded=True):
+      for line in st.session_state["pending_enemy_ocr_debug"]:
+        st.text(line)
 
   if "pending_enemy_ocr_df" in st.session_state and not st.session_state[
       "pending_enemy_ocr_df"
@@ -180,6 +190,8 @@ if st.session_state.push_unlocked:
 
       st.session_state["enemies_df"] = enemies_df
       del st.session_state["pending_enemy_ocr_df"]
+      st.session_state.pop("pending_enemy_ocr_debug", None)
       st.success("Enemy roster updated with raw power values.")
       st.rerun()
+
 
