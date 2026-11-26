@@ -23,6 +23,44 @@ if "players_df" not in st.session_state or "enemies_df" not in st.session_state:
       _filter_active_entries(enemy_rosters.get("enemies", []))
   )
 
+
+def apply_compass_background(
+    image_path: str = "assets/compass_bg.jpg", dim_overlay: float = 0.45
+):
+    img_bytes = Path(image_path).read_bytes()
+    encoded = base64.b64encode(img_bytes).decode()
+
+    st.markdown(
+        f"""
+        <style>
+        [data-testid="stAppViewContainer"] {{
+            background-image: linear-gradient(
+                rgba(12, 15, 20, {dim_overlay}),
+                rgba(12, 15, 20, {dim_overlay})
+            ), url("data:image/jpeg;base64,{encoded}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+        [data-testid="stHeader"] {{
+            background-color: rgba(0, 0, 0, 0);
+        }}
+        [data-testid="stTextInput"] > div > div,
+        [data-testid="stNumberInput"] > div > div,
+        [data-testid="stSelectbox"] > div > div,
+        [data-testid="stForm"] {{
+            background-color: rgba(20, 24, 32, 0.82) !important;
+            border-radius: 8px;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+apply_compass_background("assets/compass_bg.jpg", dim_overlay=0.45) 
+
+
 # ==========================================
 # 3. NAVIGATION (DEFAULT: CLAN RESOURCES)
 # ==========================================
