@@ -1,25 +1,11 @@
-# 🎈 Blank app template
+# 🎈 Beardy was here! 
 
-A simple Streamlit app template for you to modify!
+A (not so) simple Streamlit app for our little compass.
+Containing:
+-Linking to a sql database hosted by Turso. 
+-An enemy roster Json file for day 6 modelling, with a gemini screenshot reader for quickly importing enemy vals.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
-
-### How to run it on your own machine
-
-Prerequisite: install `uv` if you don't already have it.
-
-```
-$ curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-1. Sync the dependencies
-
-   ```
-   $ uv sync
-   ```
-
-2. Run the app
-
-   ```
-   $ uv run streamlit run streamlit_app.py
-   ```
+To do:
+War points from resources - split with points without ascending and points from recommended ascensions, across all 3 trees.
+War day 6 battle planning and recording.
+Incorporate build improver
