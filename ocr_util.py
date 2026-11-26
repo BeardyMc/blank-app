@@ -5,7 +5,6 @@ import pandas as pd
 from rapidocr_onnxruntime import RapidOCR
 import streamlit as st
 
-
 RAW_MULTIPLIERS = {
     "": 1.0,
     "k": 1e3,
@@ -26,9 +25,9 @@ RANK_MAP = {
     "r5": "r5",
 }
 
-# Extracts power like "91b", "74.9b", "34.7t" even with leading icon/punctuation noise
+# Extracts power like "91b", "74.9b", "34.7t" even after stray icon chars like "X" or ","
 POWER_EXTRACT_RE = re.compile(
-    r"(?<![a-zA-Z0-9.])(\d+(?:[.,]\d+)?)\s*([kmbtrqKMBTRQ])\b"
+    r"(?<![a-zA-Z]{2})(?<![\d.])(\d+(?:[.,]\d+)?)\s*([kmbtrqKMBTRQ])(?![a-zA-Z])"
 )
 
 # Timestamp / UI noise patterns
@@ -45,6 +44,7 @@ IGNORE_TEXT_RE = re.compile(
 
 @st.cache_resource
 def get_rapidocr_engine() -> RapidOCR:
+  """Caches the RapidOCR ONNX model so subsequent screenshot reads are near-instant."""
   return RapidOCR()
 
 
@@ -71,6 +71,7 @@ def parse_power_to_raw(raw_val) -> Optional[float]:
 
 
 def _box_metrics(box: list[list[float]]) -> tuple[float, float, float]:
+  """Returns (x_left, y_center, height) for a 4-point OCR bounding box."""
   xs = [pt[0] for pt in box]
   ys = [pt[1] for pt in box]
   x_left = min(xs)
@@ -81,6 +82,7 @@ def _box_metrics(box: list[list[float]]) -> tuple[float, float, float]:
 def _group_detections_into_rows(
     detections: list, y_tolerance_ratio: float = 0.45
 ) -> list[list[dict]]:
+  """Clusters OCR detections that share the same horizontal band into sorted rows."""
   items = []
   for det in detections:
     box, text, conf = det[0], str(det[1]).strip(), float(det[2])
@@ -116,6 +118,7 @@ def _group_detections_into_rows(
 
 
 def _clean_player_name(raw_name: str) -> str:
+  """Trims stray icon characters and outer punctuation from OCR name text."""
   cleaned = raw_name.strip()
   # Remove trailing single-char icon misreads like "Boloo o", "03FireFly04 d", "LD0113 0"
   cleaned = re.sub(r"\s+[od0]$", "", cleaned, flags=re.IGNORECASE).strip()
@@ -124,10 +127,14 @@ def _clean_player_name(raw_name: str) -> str:
 
 
 def _extract_power_from_token(text: str) -> Optional[str]:
-  # Avoid matching "TotalPower:34.7t" clan header
-  if "totalpower" in text.lower().replace(" ", ""):
+  """Extracts normalized '<number><unit>' from a token if it represents player power."""
+  compact = text.replace(" ", "")
+  # Avoid matching clan header like "TotalPower:34.7t"
+  if "totalpower" in compact.lower():
     return None
-  m = POWER_EXTRACT_RE.search(text.replace(" ", ""))
+  # Strip a single leading icon letter + optional punctuation, e.g. "X74.9b" -> "74.9b"
+  compact = re.sub(r"^[a-zA-Z]?[,.;:+\-•]*", "", compact)
+  m = POWER_EXTRACT_RE.search(compact)
   if not m:
     return None
   num_part = m.group(1).replace(",", ".")
@@ -223,7 +230,6 @@ def _parse_cards_from_rows(grouped_rows: list[list[dict]]) -> list[dict]:
     })
 
   return results
- 
 
 
 def extract_enemies_from_image(
@@ -231,6 +237,7 @@ def extract_enemies_from_image(
     mime_type: str = "image/png",
     return_debug: bool = False,
 ):
+  """Runs RapidOCR on a screenshot and parses enemy roster rows into raw power dicts."""
   ocr = get_rapidocr_engine()
   result, _ = ocr(image_bytes)
   if not result:
@@ -252,6 +259,7 @@ def extract_enemies_from_image(
 def extract_enemies_batch(
     uploaded_files, return_debug: bool = False
 ) -> tuple[pd.DataFrame, list[str]]:
+  """Processes multiple Streamlit UploadedFile objects and deduplicates by Player Name."""
   all_rows = []
   all_debug = []
 
@@ -277,4 +285,3 @@ def extract_enemies_batch(
 
   df = pd.DataFrame(list(deduped.values()))
   return df, all_debug
-
