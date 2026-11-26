@@ -1,8 +1,10 @@
 import math
 import re
 from typing import Optional
+import time 
 from google import genai
 from google.genai import types
+from google.genai import errors 
 import pandas as pd
 from pydantic import BaseModel
 import streamlit as st
@@ -50,7 +52,7 @@ def parse_power_to_raw(raw_val) -> Optional[float]:
 
 
 def extract_enemies_from_image(image_bytes: bytes, mime_type: str) -> list[dict]:
-  """Calls Gemini to extract enemy roster rows from a single screenshot."""
+  """Calls Gemini to extract enemy roster rows with basic 503 retry & fallback."""
   api_key = st.secrets.get("GEMINI_API_KEY")
   if not api_key:
     raise ValueError("Missing GEMINI_API_KEY in st.secrets.")
@@ -63,18 +65,37 @@ def extract_enemies_from_image(image_bytes: bytes, mime_type: str) -> list[dict]
       "Ignore UI status labels like online/offline timestamps or icons."
   )
 
-  response = client.models.generate_content(
-      model="gemini-3.8-flash",
-      contents=[
-          prompt,
-          types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-      ],
-      config=types.GenerateContentConfig(
-          response_mime_type="application/json",
-          response_schema=EnemyRosterExtraction,
-          temperature=0,
-      ),
-  )
+  models_to_try = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
+  response = None
+  last_err = None
+
+  for model_name in models_to_try:
+    for attempt in range(2):
+      try:
+        response = client.models.generate_content(
+            model=model_name,
+            contents=[
+                prompt,
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=EnemyRosterExtraction,
+                temperature=0,
+            ),
+        )
+        break
+      except errors.APIError as e:
+        last_err = e
+        if e.code in (503, 429) and attempt == 0:
+          time.sleep(1.5)
+          continue
+        break
+    if response is not None:
+      break
+
+  if response is None:
+    raise RuntimeError(f"Gemini request failed after retry/fallback: {last_err}")
 
   parsed = response.parsed
   if not parsed or not parsed.entries:
@@ -93,6 +114,7 @@ def extract_enemies_from_image(image_bytes: bytes, mime_type: str) -> list[dict]
         "Raw Extracted": item.power_raw,
     })
   return rows
+ 
 
 ####
 
