@@ -243,7 +243,7 @@ with st.form("clan_resources_form"):
     except ValueError as err:
       st.error(str(err))
     else:
-      upsert_player_resources({
+      if upsert_player_resources({
           "player_name": selected_player,
           "damage_val": parsed_damage,
           "health_val": parsed_health,
@@ -261,9 +261,10 @@ with st.form("clan_resources_form"):
           "mount_extra_chance": mount_extra_chance,
           "mount_mergers": mount_mergers, 
           "clan_tech_vials": clan_tech_vials,
-      })
-      st.success(f"Saved {selected_player}'s stats and resources!")
-      st.rerun()
+      }):
+        st.success(f"Saved {selected_player}'s stats and resources!")
+      else:
+        st.error("Failed to update database. Please try again.") 
 
 st.divider()
 st.subheader("Saved Clan Resources")
