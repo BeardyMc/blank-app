@@ -44,16 +44,13 @@ def skill_lvl_parse(skill_lvl_t: str):
 with st.form("clan_resources_form"):
   st.subheader(f"Stats & Resources — {selected_player}")
 
-  d1, d2 = st.columns(2, wrap=False)
+  d1, d2 = st.columns(2, vertical=alignment=" bottom", wrap=False)
   with d1:
-    damage_input = st.text_input(
-        "Damage (e.g. 13b)",
-        value=format_compact_input(existing.get("damage_val", 0.0)),
-    )
+    st.write("Power is needed for day 6 modelling, please update large jumps in power before day 6.
   with d2:
-    health_input = st.text_input(
-        "Health (e.g. 25b)",
-        value=format_compact_input(existing.get("health_val", 0.0)),
+    power_input = st.text_input(
+        "Power (e.g. 25b)",
+        value=format_compact_input(existing.get("power_val", 0.0)),
     )
 
   s1, s2 = st.columns(2,wrap=False)
@@ -238,15 +235,14 @@ with st.form("clan_resources_form"):
 
   if st.form_submit_button("Save to Database", use_container_width=True):
     try:
-      parsed_damage = parse_stat_value(damage_input)
+      parsed_power = parse_stat_value(power_input)
       parsed_health = parse_stat_value(health_input)
     except ValueError as err:
       st.error(str(err))
     else:
       if upsert_player_resources({
           "player_name": selected_player,
-          "damage_val": parsed_damage,
-          "health_val": parsed_health,
+          "power_val": parsed_power,
           "hammers": hammers,
           "skill_tickets": skill_tickets,
           "skill_summon_cost": skill_summon_cost,
