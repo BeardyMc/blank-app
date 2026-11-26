@@ -8,7 +8,7 @@ from pvp_utils import (
 )
 import streamlit as st
 
-st.set_page_config(page_title="Day 6 PvP & Clan Hub", layout="wide")
+st.set_page_config(page_title="Compass Hub", layout="wide")
 
 # ==========================================
 # 2. SHARED SESSION STATE (ROSTERS & BATTLES)
