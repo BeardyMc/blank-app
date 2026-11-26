@@ -7,6 +7,7 @@ from pvp_utils import (
     load_battles,
     load_rosters,
     set_visit_count,
+    get_latest_turso_power_map
 )
 import streamlit as st
 
@@ -15,32 +16,6 @@ st.set_page_config(page_title="Compass Hub", layout="wide")
 # ==========================================
 # 2. SHARED SESSION STATE (ROSTERS & BATTLES)
 # ==========================================
-
-def get_latest_turso_power_map() -> dict[str, float]:
-  """Returns {player_name: latest_power_val} from the append-only Turso table."""
-  conn = get_turso_conn()
-  query = """
-        WITH ranked AS (
-            SELECT
-                player_name,
-                power_val,
-                ROW_NUMBER() OVER (
-                    PARTITION BY player_name
-                    ORDER BY id DESC
-                ) AS rn
-            FROM player_resources
-        )
-        SELECT player_name, power_val
-        FROM ranked
-        WHERE rn = 1
-    """
-  rows = conn.execute(query).fetchall()
-  return {
-      str(name).strip(): float(power)
-      for name, power in rows
-      if name is not None and power is not None
-  }
-
 
 if "players_df" not in st.session_state or "enemies_df" not in st.session_state:
   clan_rosters = load_rosters("clan")
