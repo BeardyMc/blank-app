@@ -30,6 +30,7 @@ selected_player_box = st.selectbox(
     roster_names,
     index=None,
     placeholder="Select player to update...",
+    label_visibility="collapsed",
 )
 
 selected_player = selected_player_box
