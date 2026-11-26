@@ -5,6 +5,7 @@ import pandas as pd
 from rapidocr_onnxruntime import RapidOCR
 import streamlit as st
 
+
 RAW_MULTIPLIERS = {
     "": 1.0,
     "k": 1e3,
@@ -14,46 +15,41 @@ RAW_MULTIPLIERS = {
     "q": 1e15,
 }
 
-# Known rank labels/aliases seen in roster lists
 RANK_MAP = {
     "leader": "Leader",
     "commander": "Commander",
     "captain": "Captain",
-    "R1": "r1",
-    "R2": "r2",
-    "R3": "r3",
-    "R4": "r4",
-    "R5": "r5",
+    "r1": "r1",
+    "r2": "r2",
+    "r3": "r3",
+    "r4": "r4",
+    "r5": "r5",
 }
 
-# Matches standalone or trailing rank tokens like "R4", "r4", "Leader", "Commander", "Captain"
-TRAILING_RANK_RE = re.compile(
-    r"^(.*?)\s*\b(leader|commander|captain|r[1-5])\b\s*$",
-    re.IGNORECASE,
+# Extracts power like "91b", "74.9b", "34.7t" even with leading icon/punctuation noise
+POWER_EXTRACT_RE = re.compile(
+    r"(?<![a-zA-Z0-9.])(\d+(?:[.,]\d+)?)\s*([kmbtrqKMBTRQ])\b"
 )
 
-# Ignore clan summary / header lines
-IGNORE_LINE_RE = re.compile(
-    r"^(war progress|day \d+|tier-|total power|clan tech|members:|online|offline|\d+\s*[smhd]\s*ago)$",
+# Timestamp / UI noise patterns
+TIMESTAMP_RE = re.compile(
+    r"^(\d+\s*[smhd]\s*ago|[a-z]*\s*ago|\d+\s*[smhd])$",
     re.IGNORECASE,
 )
-
-# Match standalone power strings like 516t, 3.82t, 14b, 850m (avoid timestamps like 40m ago / 4h)
-POWER_PATTERN = re.compile(r"^(\d+(?:[.,]\d+)?)\s*([kmbtqKMBTQ])$")
-NOISE_PATTERN = re.compile(
-    r"^(online|offline|\d+\s*[smhd]\s*ago|\d+\s*h|\d+\s*d|lv\.?\s*\d+)$",
+IGNORE_TEXT_RE = re.compile(
+    r"^(war progress|day\s*\d+|tier-|total\s*power|clan\s*tech|members:|"
+    r"members|missions|war|online|offline|[+\-]?\d+|l\+|x)$",
     re.IGNORECASE,
 )
 
 
 @st.cache_resource
 def get_rapidocr_engine() -> RapidOCR:
-  """Caches the RapidOCR ONNX model so subsequent screenshot reads are near-instant."""
   return RapidOCR()
 
 
 def parse_power_to_raw(raw_val) -> Optional[float]:
-  """Converts strings like '850m', '436b', '3.82t', or '1.88q' into raw numeric power."""
+  """Converts strings like '850m', '91b', '74.9b', or '34.7t' into raw numeric power."""
   if raw_val is None:
     return None
   if isinstance(raw_val, (int, float)) and not isinstance(raw_val, bool):
@@ -66,6 +62,8 @@ def parse_power_to_raw(raw_val) -> Optional[float]:
 
   num = float(match.group(1))
   suffix = match.group(2).lower()
+  if suffix == "r":
+    suffix = "b"
   if suffix not in RAW_MULTIPLIERS:
     return None
 
@@ -73,7 +71,6 @@ def parse_power_to_raw(raw_val) -> Optional[float]:
 
 
 def _box_metrics(box: list[list[float]]) -> tuple[float, float, float]:
-  """Returns (x_left, y_center, height) for a 4-point OCR bounding box."""
   xs = [pt[0] for pt in box]
   ys = [pt[1] for pt in box]
   x_left = min(xs)
@@ -82,9 +79,8 @@ def _box_metrics(box: list[list[float]]) -> tuple[float, float, float]:
 
 
 def _group_detections_into_rows(
-    detections: list, y_tolerance_ratio: float = 0.65
+    detections: list, y_tolerance_ratio: float = 0.45
 ) -> list[list[dict]]:
-  """Clusters OCR detections that share the same horizontal band into sorted rows."""
   items = []
   for det in detections:
     box, text, conf = det[0], str(det[1]).strip(), float(det[2])
@@ -119,53 +115,115 @@ def _group_detections_into_rows(
   return rows
 
 
-def _parse_single_row(row_tokens: list[dict]) -> Optional[dict]:
-  detected_power_raw = None
-  detected_rank = ""
-  name_candidates = []
+def _clean_player_name(raw_name: str) -> str:
+  cleaned = raw_name.strip()
+  # Remove trailing single-char icon misreads like "Boloo o", "03FireFly04 d", "LD0113 0"
+  cleaned = re.sub(r"\s+[od0]$", "", cleaned, flags=re.IGNORECASE).strip()
+  cleaned = re.sub(r"^[,;:\-•]+\s*|\s*[,;:\-•]+$", "", cleaned).strip()
+  return cleaned
 
-  for tok in row_tokens:
-    txt = tok["text"].strip()
-    if not txt or IGNORE_LINE_RE.match(txt):
-      continue
 
-    lower_txt = txt.lower()
-    if lower_txt in RANK_MAP:
-      detected_rank = RANK_MAP[lower_txt]
-      continue
-
-    compact = txt.replace(" ", "")
-    if POWER_PATTERN.match(compact):
-      detected_power_raw = compact
-      continue
-
-    if compact.isdigit() and len(compact) <= 3:
-      continue
-
-    # If a rank got glued onto the end of a name token (e.g. "SharksL o R4")
-    m_rank = TRAILING_RANK_RE.match(txt)
-    if m_rank:
-      prefix_name = m_rank.group(1).strip()
-      rank_token = m_rank.group(2).lower()
-      if rank_token in RANK_MAP and not detected_rank:
-        detected_rank = RANK_MAP[rank_token]
-      if prefix_name:
-        name_candidates.append(prefix_name)
-      continue
-
-    name_candidates.append(txt)
-
-  if not name_candidates or not detected_power_raw:
+def _extract_power_from_token(text: str) -> Optional[str]:
+  # Avoid matching "TotalPower:34.7t" clan header
+  if "totalpower" in text.lower().replace(" ", ""):
     return None
+  m = POWER_EXTRACT_RE.search(text.replace(" ", ""))
+  if not m:
+    return None
+  num_part = m.group(1).replace(",", ".")
+  unit_part = m.group(2).lower()
+  if unit_part == "r":
+    unit_part = "b"
+  return f"{num_part}{unit_part}"
 
-  player_name = " ".join(name_candidates).strip()
-  return {
-      "Include": True,
-      "Player Name": player_name,
-      "Rank": detected_rank,
-      "power": parse_power_to_raw(detected_power_raw),
-      "Raw Extracted": detected_power_raw,
-  }
+
+def _parse_cards_from_rows(grouped_rows: list[list[dict]]) -> list[dict]:
+  """Pairs each power row with its above player name row and nearby right-side rank."""
+  # Classify each row as power, rank-only, name-candidate, or ignored
+  row_records = []
+  for idx, tokens in enumerate(grouped_rows):
+    avg_y = sum(t["y"] for t in tokens) / len(tokens)
+    power_val = None
+    rank_val = ""
+    name_parts = []
+
+    for t in tokens:
+      txt = t["text"].strip()
+      if not txt:
+        continue
+
+      p = _extract_power_from_token(txt)
+      if p:
+        power_val = p
+        continue
+
+      low = txt.lower().strip()
+      if low in RANK_MAP:
+        rank_val = RANK_MAP[low]
+        continue
+
+      if TIMESTAMP_RE.match(low) or IGNORE_TEXT_RE.match(low):
+        continue
+
+      # Ignore standalone numbers/commas
+      if re.fullmatch(r"[\d,.\s]+", txt):
+        continue
+
+      name_parts.append(txt)
+
+    row_records.append({
+        "idx": idx,
+        "y": avg_y,
+        "power_raw": power_val,
+        "rank": rank_val,
+        "name": _clean_player_name(" ".join(name_parts)),
+    })
+
+  results = []
+  used_name_indices = set()
+
+  for r_idx, rec in enumerate(row_records):
+    if not rec["power_raw"]:
+      continue
+
+    # Find closest unused name row above this power row (within ~25 to 75 px)
+    best_name_idx = None
+    best_dist = float("inf")
+    for cand_idx in range(r_idx - 1, -1, -1):
+      cand = row_records[cand_idx]
+      dy = rec["y"] - cand["y"]
+      if dy < 15:
+        continue
+      if dy > 90:
+        break
+      if cand["name"] and cand_idx not in used_name_indices and dy < best_dist:
+        best_dist = dy
+        best_name_idx = cand_idx
+        break
+
+    if best_name_idx is None:
+      continue
+
+    used_name_indices.add(best_name_idx)
+    player_name = row_records[best_name_idx]["name"]
+
+    # Rank may be on the same row or on an adjacent row within ~25 px
+    rank_val = rec["rank"]
+    if not rank_val:
+      for adj in row_records:
+        if adj["rank"] and abs(adj["y"] - rec["y"]) <= 25:
+          rank_val = adj["rank"]
+          break
+
+    results.append({
+        "Include": True,
+        "Player Name": player_name,
+        "Rank": rank_val,
+        "power": parse_power_to_raw(rec["power_raw"]),
+        "Raw Extracted": rec["power_raw"],
+    })
+
+  return results
 
 
 def extract_enemies_from_image(
@@ -173,18 +231,13 @@ def extract_enemies_from_image(
     mime_type: str = "image/png",
     return_debug: bool = False,
 ):
-  """Runs RapidOCR on a screenshot and parses enemy roster rows into raw power dicts."""
   ocr = get_rapidocr_engine()
   result, _ = ocr(image_bytes)
   if not result:
     return ([], []) if return_debug else []
 
-  grouped_rows = _group_detections_into_rows(result)
-  parsed_rows = []
-  for row_tokens in grouped_rows:
-    parsed = _parse_single_row(row_tokens)
-    if parsed:
-      parsed_rows.append(parsed)
+  grouped_rows = _group_detections_into_rows(result, y_tolerance_ratio=0.45)
+  parsed_rows = _parse_cards_from_rows(grouped_rows)
 
   if return_debug:
     debug_lines = [
@@ -199,7 +252,6 @@ def extract_enemies_from_image(
 def extract_enemies_batch(
     uploaded_files, return_debug: bool = False
 ) -> tuple[pd.DataFrame, list[str]]:
-  """Processes multiple Streamlit UploadedFile objects and deduplicates by Player Name."""
   all_rows = []
   all_debug = []
 
@@ -225,3 +277,4 @@ def extract_enemies_batch(
 
   df = pd.DataFrame(list(deduped.values()))
   return df, all_debug
+
