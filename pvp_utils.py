@@ -1155,3 +1155,13 @@ def recommend_next_reset_assignments(
 
   return pd.DataFrame(suggestions)
 
+
+def skill_lvl_parse(skill_lvl_t: str):
+  """Parses 'L_sl_A' (e.g. '10_20_2') into (level, sub_level, ascension)."""
+  parts = str(skill_lvl_t).strip().split("_")
+  if len(parts) != 3:
+    raise ValueError(f"Expected 'L_sl_A' format, got '{skill_lvl_t}'")
+
+  lvl, sub_lvl, ascension = (int(p) for p in parts)
+  return lvl, sub_lvl, ascension
+
