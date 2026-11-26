@@ -42,7 +42,8 @@ _MULTIPLIERS = {
 
 CREATE_PLAYER_RESOURCES_SQL = """
 CREATE TABLE IF NOT EXISTS player_resources (
-    player_name TEXT PRIMARY KEY NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_name TEXT NOT NULL,
     power_val REAL NOT NULL DEFAULT 0.0,
     hammers INTEGER NOT NULL DEFAULT 0,
     skill_tickets INTEGER NOT NULL DEFAULT 0,
@@ -123,75 +124,83 @@ def get_turso_conn():
 
 @st.cache_data(ttl=15)
 def load_player_resources() -> pd.DataFrame:
-  conn = get_turso_conn()
-  cols_sql = ", ".join(RESOURCE_COLUMNS)
-  rows = conn.execute(
-    f"SELECT {cols_sql} FROM player_resources ORDER BY LOWER(player_name) ASC"
-  ).fetchall()
-  if not rows:
-    return pd.DataFrame(columns=RESOURCE_COLUMNS)
-  return pd.DataFrame(rows, columns=RESOURCE_COLUMNS)
-
+    conn = get_turso_conn()
+    cols_sql = ", ".join(RESOURCE_COLUMNS)
+    query = f"""
+        WITH ranked AS (
+            SELECT
+                {cols_sql},
+                ROW_NUMBER() OVER (
+                    PARTITION BY player_name
+                    ORDER BY id DESC
+                ) AS rn
+            FROM player_resources
+        )
+        SELECT {cols_sql}
+        FROM ranked
+        WHERE rn = 1
+        ORDER BY player_name ASC
+    """
+    rows = conn.execute(query).fetchall()
+    if not rows:
+        return pd.DataFrame(columns=RESOURCE_COLUMNS)
+    return pd.DataFrame(rows, columns=RESOURCE_COLUMNS) 
 
 
 def upsert_player_resources(data: dict) -> bool:
-  conn = get_turso_conn()
-  now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-  try:
-    conn.execute(
-        """
-        INSERT INTO player_resources (
-            player_name, power_val,
-            hammers, skill_tickets, skill_summon_cost, skill_level,
-            egg_summon_lvl, egg_summon_chance, pets_to_merge,
-            mount_summon_lvl, mount_clockwinders, mount_cost_reduction,
-            mount_extra_chance, clan_tech_vials, Eggshells, mount_mergers, updated_at
+    """Appends a new snapshot row to `player_resources` instead of overwriting."""
+    conn = get_turso_conn()
+    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    try:
+        conn.execute(
+            """
+            INSERT INTO player_resources (
+                player_name,
+                power_val,
+                hammers,
+                skill_tickets,
+                skill_summon_cost,
+                skill_level,
+                egg_summon_lvl,
+                egg_summon_chance,
+                pets_to_merge,
+                mount_summon_lvl,
+                mount_clockwinders,
+                mount_cost_reduction,
+                mount_extra_chance,
+                clan_tech_vials,
+                Eggshells,
+                mount_mergers,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                data["player_name"],
+                float(data["power_val"]),
+                int(data["hammers"]),
+                int(data["skill_tickets"]),
+                int(data["skill_summon_cost"]),
+                str(data["skill_level"]),
+                str(data["egg_summon_lvl"]),
+                int(data["egg_summon_chance"]),
+                int(data["pets_to_merge"]),
+                str(data["mount_summon_lvl"]),
+                int(data["mount_clockwinders"]),
+                int(data["mount_cost_reduction"]),
+                int(data["mount_extra_chance"]),
+                int(data["clan_tech_vials"]),
+                int(data["Eggshells"]),
+                int(data["mount_mergers"]),
+                now_utc,
+            ),
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(player_name) DO UPDATE SET
-            power_val = excluded.power_val,
-            hammers = excluded.hammers,
-            skill_tickets = excluded.skill_tickets,
-            skill_summon_cost = excluded.skill_summon_cost,
-            skill_level = excluded.skill_level,
-            egg_summon_lvl = excluded.egg_summon_lvl,
-            egg_summon_chance = excluded.egg_summon_chance,
-            pets_to_merge = excluded.pets_to_merge,
-            mount_summon_lvl = excluded.mount_summon_lvl,
-            mount_clockwinders = excluded.mount_clockwinders,
-            mount_cost_reduction = excluded.mount_cost_reduction,
-            mount_extra_chance = excluded.mount_extra_chance,
-            clan_tech_vials = excluded.clan_tech_vials,
-            Eggshells = excluded.Eggshells,
-            mount_mergers = excluded.mount_mergers,
-            updated_at = excluded.updated_at
-        """,
-        (
-            data["player_name"],
-            float(data["power_val"]),
-            int(data["hammers"]),
-            int(data["skill_tickets"]),
-            int(data["skill_summon_cost"]),
-            str(data["skill_level"]),
-            str(data["egg_summon_lvl"]),
-            int(data["egg_summon_chance"]),
-            int(data["pets_to_merge"]),
-            str(data["mount_summon_lvl"]),
-            int(data["mount_clockwinders"]),
-            int(data["mount_cost_reduction"]),
-            int(data["mount_extra_chance"]),
-            int(data["clan_tech_vials"]),
-            int(data["Eggshells"]),
-            int(data["mount_mergers"]),
-            now_utc,
-        ),
-    )
-    conn.commit()
-    st.cache_data.clear()
-    return True
-  except Exception as exc:
-    print(f"Turso upsert error: {exc}", flush=True)
-    return False
+        conn.commit()
+        st.cache_data.clear()
+        return True
+    except Exception as exc:
+        print(f"Turso insert error: {exc}", flush=True)
+        return False 
 
 
 def format_compact_input(val) -> str:
