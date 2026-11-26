@@ -8,7 +8,7 @@ st.write(
     " push them to GitHub."
 )
 
-DISPLAY_COLS = ["Rank", "Player Name", "Power (b)"]
+DISPLAY_COLS = ["Rank", "Player Name", "power"]
 
 left_col, right_col = st.columns(2, wrap=False)
 
