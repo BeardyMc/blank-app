@@ -234,6 +234,8 @@ with st.form("clan_resources_form"):
     )
   mount_summon_lvl = f"{mount_summon_lvl1} _{mount_summon_lvl2}_{mount_summon_lvl3}"
 
+  st.divider()
+
   if st.form_submit_button("Save to Database", use_container_width=True):
     try:
       parsed_damage = parse_stat_value(damage_input)
