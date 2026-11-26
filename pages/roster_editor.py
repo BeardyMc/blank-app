@@ -101,7 +101,7 @@ with st.expander("Save / Push Rosters to GitHub", expanded=True):
 
 
 if st.session_state.push_unlocked:
-  st.subheader("Import Enemy Roster From Screenshots")
+  st.subheader("EXPERIMENTAL:\n\nImport Enemy Roster From Screenshots")
 
   uploaded_files = st.file_uploader(
       "Upload enemy roster screenshots",
