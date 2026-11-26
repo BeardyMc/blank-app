@@ -188,15 +188,16 @@ with st.expander("Save / Push Rosters to GitHub", expanded=True):
       if st.button(
           "Push Rosters to GitHub", key="push_rosters_btn", width="stretch"
       ):
-        ok, msg = save_roster_to_github( 
-            "clan", 
+        ok, updated_players, updated_enemies, msg = save_rosters_to_github(
             st.session_state.players_df,
             st.session_state.enemies_df,
             commit_message=final_commit_msg,
+            power_col="power",
         )
         if ok:
-          st.session_state.players_df = updated_df
-          st.success(msg) 
+          st.session_state.players_df = updated_players
+          st.session_state.enemies_df = updated_enemies
+          st.success(msg)
         else:
           st.error(msg)
     with col_lock:
