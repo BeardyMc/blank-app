@@ -1,5 +1,5 @@
 streamlit
 pandas
 libsql
-google-genai
 pydantic
+rapidocr_onnxruntime
