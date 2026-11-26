@@ -24,7 +24,18 @@ else:
   roster_names = ["Mypleasure", "Kitty87", "BeardyMcBeard"]
 
 saved_df = load_player_resources()
-selected_player = st.selectbox("Player Name (Clan Roster)", roster_names)
+selected_player_box = st.selectbox(
+    "Player Name (Clan Roster)",
+    roster_names,
+    index=None,
+    placeholder="Select player to update...",
+)
+
+if selected_player_box is not None:
+  # handle not inputted yet
+  selected_player = "Kitty87" # troll kitty as default
+else:
+  selected_player = selected_player_box
 
 existing = {}
 if not saved_df.empty and selected_player in saved_df["player_name"].values:
