@@ -31,7 +31,7 @@ selected_player_box = st.selectbox(
     placeholder="Select player to update...",
 )
 
-if selected_player_box is not None:
+if selected_player_box is None:
   # handle not inputted yet
   selected_player = "Kitty87" # troll kitty as default
 else:
