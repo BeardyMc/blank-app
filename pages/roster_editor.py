@@ -10,16 +10,6 @@ from pvp_utils import format_si_3sf, save_roster_to_github, sum_roster_power
 
 
 ### GEMINI SCREENSHOT READER ###
-import math
-import re
-from typing import Optional
-from google import genai
-from google.genai import types
-import pandas as pd
-from pydantic import BaseModel
-import streamlit as st
-
-
 class EnemyRow(BaseModel):
   player_name: str
   rank: Optional[str] = None
@@ -30,8 +20,17 @@ class EnemyRosterExtraction(BaseModel):
   entries: list[EnemyRow]
 
 
-def parse_power_to_billions(raw_val) -> Optional[float]:
-  """Converts strings like '850m', '436b', '3.82t', or '1.88q' into numeric Power (b)."""
+RAW_MULTIPLIERS = {
+    "": 1.0,
+    "k": 1e3,
+    "m": 1e6,
+    "b": 1e9,
+    "t": 1e12,
+    "q": 1e15,
+}
+
+def parse_power_to_raw(raw_val) -> Optional[float]:
+  """Converts strings like '850m', '436b', '3.82t', or '1.88q' into raw numeric power."""
   if raw_val is None:
     return None
   if isinstance(raw_val, (int, float)) and not isinstance(raw_val, bool):
@@ -43,21 +42,11 @@ def parse_power_to_billions(raw_val) -> Optional[float]:
     return None
 
   num = float(match.group(1))
-  suffix = match.group(2)
+  suffix = match.group(2).lower()
+  if suffix not in RAW_MULTIPLIERS:
+    return None
 
-  suffix_to_b = {
-      "": 1.0,
-      "b": 1.0,
-      "B": 1.0,
-      "m": 1e-3,
-      "M": 1e-3,
-      "t": 1e3,
-      "T": 1e3,
-      "q": 1e6,
-      "Q": 1e6,
-  }
-  factor = suffix_to_b.get(suffix, suffix_to_b.get(suffix.lower(), 1.0))
-  return round(num * factor, 6)
+  return round(num * RAW_MULTIPLIERS[suffix], 2)
 
 
 def extract_enemies_from_image(image_bytes: bytes, mime_type: str) -> list[dict]:
@@ -100,7 +89,7 @@ def extract_enemies_from_image(image_bytes: bytes, mime_type: str) -> list[dict]
         "Include": True,
         "Player Name": name,
         "Rank": (item.rank or "").strip(),
-        "Power (b)": parse_power_to_billions(item.power_raw),
+        "power": parse_power_to_raw(item.power_raw),
         "Raw Extracted": item.power_raw,
     })
   return rows
@@ -286,13 +275,13 @@ if st.session_state.push_unlocked:
       st.rerun()
 
 
-if True:
-  test_files = st.file_uploader(
+
+test_files = st.file_uploader(
       "Test screenshot upload",
       accept_multiple_files=True,
       key="test_enemy_uploads_v2",
-  )
-  st.write("test_files:", [f.name for f in test_files] if test_files else [])
+)
+st.write("test_files:", [f.name for f in test_files] if test_files else [])
 
 
 
