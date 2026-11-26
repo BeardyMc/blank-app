@@ -24,7 +24,7 @@ else:
   roster_names = ["Mypleasure", "Kitty87", "BeardyMcBeard"]
 
 saved_df = load_player_resources()
-selected_player = st.selectbox("Player Name (Clan Roster)", roster_names, value=None)
+selected_player = st.selectbox("Player Name (Clan Roster)", roster_names)
 
 existing = {}
 if not saved_df.empty and selected_player in saved_df["player_name"].values:
