@@ -23,7 +23,8 @@ if "players_df" not in st.session_state or "enemies_df" not in st.session_state:
   st.session_state.players_df = pd.DataFrame(
       _filter_active_entries(clan_rosters.get("players", []))
   )
-
+  
+  players_df = st.session_state.players_df
   latest_power_map = get_latest_turso_power_map()
   if not players_df.empty and "Player Name" in players_df.columns:
     players_df["power"] = (
@@ -36,6 +37,7 @@ if "players_df" not in st.session_state or "enemies_df" not in st.session_state:
   else:
     players_df["power"] = 0.0 
 
+  st.session_state.players_df = players_df
   st.session_state.enemies_df = pd.DataFrame(
       _filter_active_entries(enemy_rosters.get("enemies", []))
   )
