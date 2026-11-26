@@ -146,7 +146,7 @@ def upsert_player_resources(data: dict) -> bool:
             hammers, skill_tickets, skill_summon_cost, skill_level,
             egg_summon_lvl, egg_summon_chance, pets_to_merge,
             mount_summon_lvl, mount_clockwinders, mount_cost_reduction,
-            mount_extra_chance, clan_tech_vials, eggshells, mount_mergers, updated_at
+            mount_extra_chance, clan_tech_vials, Eggshells, mount_mergers, updated_at
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(player_name) DO UPDATE SET
@@ -164,7 +164,7 @@ def upsert_player_resources(data: dict) -> bool:
             mount_cost_reduction = excluded.mount_cost_reduction,
             mount_extra_chance = excluded.mount_extra_chance,
             clan_tech_vials = excluded.clan_tech_vials,
-            eggshells = excluded.eggshells,
+            Eggshells = excluded.Eggshells,
             mount_mergers = excluded.mount_mergers,
             updated_at = excluded.updated_at
         """,
@@ -184,7 +184,7 @@ def upsert_player_resources(data: dict) -> bool:
             int(data["mount_cost_reduction"]),
             int(data["mount_extra_chance"]),
             int(data["clan_tech_vials"]),
-            int(data["eggshells"]),
+            int(data["Eggshells"]),
             int(data["mount_mergers"]),
             now_utc,
         ),
