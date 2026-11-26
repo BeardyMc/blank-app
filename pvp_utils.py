@@ -146,7 +146,7 @@ def upsert_player_resources(data: dict):
             mount_summon_lvl, mount_clockwinders,     mount_cost_reduction,
             mount_extra_chance, clan_tech_vials, Eggshells, mount_mergers, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? , ?)
         ON CONFLICT(player_name) DO UPDATE SET
             damage_val = excluded.damage_val,
             health_val = excluded.health_val,
