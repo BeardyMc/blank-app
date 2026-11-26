@@ -9,6 +9,7 @@ import libsql
 import pandas as pd
 import streamlit as st
 
+
 RESOURCE_COLUMNS = [
     "player_name",
     "power_val",
@@ -41,7 +42,7 @@ _MULTIPLIERS = {
 
 CREATE_PLAYER_RESOURCES_SQL = """
 CREATE TABLE IF NOT EXISTS player_resources (
-    player_name TEXT PRIMARY KEY,
+    player_name TEXT PRIMARY KEY NOT NULL,
     power_val REAL NOT NULL DEFAULT 0.0,
     hammers INTEGER NOT NULL DEFAULT 0,
     skill_tickets INTEGER NOT NULL DEFAULT 0,
