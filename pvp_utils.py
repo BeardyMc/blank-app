@@ -134,19 +134,21 @@ def load_player_resources() -> pd.DataFrame:
   return pd.DataFrame(rows, columns=RESOURCE_COLUMNS)
 
 
-def upsert_player_resources(data: dict):
+
+def upsert_player_resources(data: dict) -> bool:
   conn = get_turso_conn()
   now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-  conn.execute(
-      """
+  try:
+    conn.execute(
+        """
         INSERT INTO player_resources (
             player_name, damage_val, health_val,
             hammers, skill_tickets, skill_summon_cost, skill_level,
             egg_summon_lvl, egg_summon_chance, pets_to_merge,
-            mount_summon_lvl, mount_clockwinders,     mount_cost_reduction,
-            mount_extra_chance, clan_tech_vials, Eggshells, mount_mergers, updated_at
+            mount_summon_lvl, mount_clockwinders, mount_cost_reduction,
+            mount_extra_chance, clan_tech_vials, eggshells, mount_mergers, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? , ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(player_name) DO UPDATE SET
             damage_val = excluded.damage_val,
             health_val = excluded.health_val,
@@ -162,33 +164,37 @@ def upsert_player_resources(data: dict):
             mount_cost_reduction = excluded.mount_cost_reduction,
             mount_extra_chance = excluded.mount_extra_chance,
             clan_tech_vials = excluded.clan_tech_vials,
-            Eggshells = excluded.Eggshells, 
+            eggshells = excluded.eggshells,
             mount_mergers = excluded.mount_mergers,
             updated_at = excluded.updated_at
         """,
-      (
-          data["player_name"],
-          float(data["damage_val"]),
-          float(data["health_val"]),
-          int(data["hammers"]),
-          int(data["skill_tickets"]),
-          int(data["skill_summon_cost"]),
-          (data["skill_level"]),
-          (data["egg_summon_lvl"]),
-          int(data["egg_summon_chance"]),
-          int(data["pets_to_merge"]),
-          (data["mount_summon_lvl"]),
-          int(data["mount_clockwinders"]),
-          int(data["mount_cost_reduction"]),
-          int(data["mount_extra_chance"]),
-          int(data["clan_tech_vials"]),
-          int(data["Eggshells"]), 
-          int(data["mount_mergers"]), 
-          now_utc,
-      ),
-  )
-  conn.commit()
-  st.cache_data.clear()
+        (
+            data["player_name"],
+            float(data["damage_val"]),
+            float(data["health_val"]),
+            int(data["hammers"]),
+            int(data["skill_tickets"]),
+            int(data["skill_summon_cost"]),
+            str(data["skill_level"]),
+            str(data["egg_summon_lvl"]),
+            int(data["egg_summon_chance"]),
+            int(data["pets_to_merge"]),
+            str(data["mount_summon_lvl"]),
+            int(data["mount_clockwinders"]),
+            int(data["mount_cost_reduction"]),
+            int(data["mount_extra_chance"]),
+            int(data["clan_tech_vials"]),
+            int(data["eggshells"]),
+            int(data["mount_mergers"]),
+            now_utc,
+        ),
+    )
+    conn.commit()
+    st.cache_data.clear()
+    return True
+  except Exception as exc:
+    print(f"Turso upsert error: {exc}", flush=True)
+    return False
 
 
 def format_compact_input(val) -> str:
