@@ -9,7 +9,7 @@ import pandas as pd
 from pydantic import BaseModel
 import streamlit as st
 from pvp_utils import format_si_3sf, save_rosters_to_github, sum_roster_power
-from ocr_util import extract_enemies_batch
+from ocr_util import extract_enemies_batch 
 
 
 st.title("Roster Editor")
@@ -103,7 +103,6 @@ with st.expander("Save / Push Rosters to GitHub", expanded=True):
 
 
 
-
 if st.session_state.push_unlocked:
   st.subheader("Import Enemy Roster From Screenshots")
 
@@ -114,6 +113,7 @@ if st.session_state.push_unlocked:
       key="enemy_roster_uploads_v2",
   )
 
+  # Keep uploaded file list visible right before the Extract button
   if uploaded_files:
     st.caption(
         "Attached: "
@@ -127,23 +127,9 @@ if st.session_state.push_unlocked:
       disabled=not uploaded_files,
       key="btn_extract_enemies",
   ):
-    all_rows = []
-    with st.spinner("Reading screenshots with Gemini..."):
-      for f in uploaded_files:
-        mime = f.type or "image/png"
-        all_rows.extend(extract_enemies_from_image(f.getvalue(), mime))
-
-    deduped = {}
-    for r in all_rows:
-      key = r["Player Name"].lower()
-      if key not in deduped:
-        deduped[key] = r
-      elif deduped[key]["power"] is None and r["power"] is not None:
-        deduped[key] = r
-
-    st.session_state["pending_enemy_ocr_df"] = pd.DataFrame(
-        list(deduped.values())
-    )
+    with st.spinner("Reading screenshots with RapidOCR..."):
+      ocr_df, _ = extract_enemies_batch(uploaded_files)
+    st.session_state["pending_enemy_ocr_df"] = ocr_df
 
   if "pending_enemy_ocr_df" in st.session_state and not st.session_state[
       "pending_enemy_ocr_df"
@@ -199,3 +185,4 @@ if st.session_state.push_unlocked:
       del st.session_state["pending_enemy_ocr_df"]
       st.success("Enemy roster updated with raw power values.")
       st.rerun()
+
