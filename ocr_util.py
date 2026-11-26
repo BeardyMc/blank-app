@@ -139,7 +139,6 @@ def _extract_power_from_token(text: str) -> Optional[str]:
 
 def _parse_cards_from_rows(grouped_rows: list[list[dict]]) -> list[dict]:
   """Pairs each power row with its above player name row and nearby right-side rank."""
-  # Classify each row as power, rank-only, name-candidate, or ignored
   row_records = []
   for idx, tokens in enumerate(grouped_rows):
     avg_y = sum(t["y"] for t in tokens) / len(tokens)
@@ -165,8 +164,10 @@ def _parse_cards_from_rows(grouped_rows: list[list[dict]]) -> list[dict]:
       if TIMESTAMP_RE.match(low) or IGNORE_TEXT_RE.match(low):
         continue
 
-      # Ignore standalone numbers/commas
-      if re.fullmatch(r"[\d,.\s]+", txt):
+      # Ignore standalone numbers, punctuation, or signed badges like "+3" / "-1"
+      if re.fullmatch(r"[+\-]?\d[\d,.\s]*", txt) or re.fullmatch(
+          r"[,.;:+\-•]+", txt
+      ):
         continue
 
       name_parts.append(txt)
@@ -186,7 +187,7 @@ def _parse_cards_from_rows(grouped_rows: list[list[dict]]) -> list[dict]:
     if not rec["power_raw"]:
       continue
 
-    # Find closest unused name row above this power row (within ~25 to 75 px)
+    # Scan all rows above this power row within ~15–90 px and pick the closest valid name
     best_name_idx = None
     best_dist = float("inf")
     for cand_idx in range(r_idx - 1, -1, -1):
@@ -199,7 +200,6 @@ def _parse_cards_from_rows(grouped_rows: list[list[dict]]) -> list[dict]:
       if cand["name"] and cand_idx not in used_name_indices and dy < best_dist:
         best_dist = dy
         best_name_idx = cand_idx
-        break
 
     if best_name_idx is None:
       continue
@@ -207,7 +207,6 @@ def _parse_cards_from_rows(grouped_rows: list[list[dict]]) -> list[dict]:
     used_name_indices.add(best_name_idx)
     player_name = row_records[best_name_idx]["name"]
 
-    # Rank may be on the same row or on an adjacent row within ~25 px
     rank_val = rec["rank"]
     if not rank_val:
       for adj in row_records:
@@ -224,6 +223,7 @@ def _parse_cards_from_rows(grouped_rows: list[list[dict]]) -> list[dict]:
     })
 
   return results
+ 
 
 
 def extract_enemies_from_image(
