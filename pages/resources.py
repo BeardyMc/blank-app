@@ -255,7 +255,7 @@ with st.form("clan_resources_form"):
           "pets_to_merge": pets_to_merge,
           "mount_summon_lvl": mount_summon_lvl,
           "mount_clockwinders": mount_clockwinders,
-          "mount_summon_cost": mount_summon_cost,
+          "mount_cost_reduction": mount_cost_reduction,
           "mount_extra_chance": mount_extra_chance,
           "mount_mergers": mount_mergers, 
           "clan_tech_vials": clan_tech_vials,
