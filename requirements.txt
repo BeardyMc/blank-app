@@ -3,3 +3,4 @@ pandas
 libsql
 pydantic
 rapidocr_onnxruntime
+opencv-python-headless
