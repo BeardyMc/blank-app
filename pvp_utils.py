@@ -30,15 +30,6 @@ RESOURCE_COLUMNS = [
     "updated_at",
 ]
 
-_MULTIPLIERS = {
-    "": 1.0,
-    "k": 1e3,
-    "m": 1e6,
-    "b": 1e9,
-    "t": 1e12,
-    "q": 1e15,
-}
-
 
 CREATE_PLAYER_RESOURCES_SQL = """
 CREATE TABLE IF NOT EXISTS player_resources (
@@ -64,195 +55,14 @@ CREATE TABLE IF NOT EXISTS player_resources (
 """
 
 
-def ensure_player_resources_table():
-  """Creates player_resources in Turso if it doesn't exist yet."""
-  conn = get_turso_conn()
-  conn.execute(CREATE_PLAYER_RESOURCES_SQL)
-  conn.commit()
-
-
-
-def parse_stat_value(raw_value, default: float = 0.0) -> float:
-  """Converts strings like '13b', '4.5t', '250m', or '13000000000' into a number."""
-  if raw_value is None:
-    return float(default)
-  if isinstance(raw_value, (int, float)):
-    return float(raw_value)
-
-  text = str(raw_value).strip().lower().replace(",", "")
-  if not text:
-    return float(default)
-
-  match = re.fullmatch(r"([+-]?\d+(?:\.\d+)?)\s*([a-z]*)", text)
-  if not match:
-    raise ValueError(f"Could not parse '{raw_value}'. Try something like 13b or 450m.")
-
-  number = float(match.group(1))
-  suffix = match.group(2)
-  if suffix not in _MULTIPLIERS:
-    raise ValueError(f"Unsupported suffix '{suffix}' in '{raw_value}'.")
-
-  return number * _MULTIPLIERS[suffix]
-
-
-def format_compact_input(val) -> str:
-  """Formats a stored numeric stat for text_input prefill, e.g. 13000000000 -> '13b'."""
-  if val is None or float(val) == 0.0:
-    return "0"
-  num = float(val)
-  for suffix, mult in [
-      ("q", 1e15),
-      ("t", 1e12),
-      ("b", 1e9),
-      ("m", 1e6),
-      ("k", 1e3),
-  ]:
-    if abs(num) >= mult:
-      return f"{num / mult:g}{suffix}"
-  return f"{num:g}"
-
-
-@st.cache_resource
-def get_turso_conn():
-  db_url = st.secrets["TURSO_DATABASE_URL"]
-  auth_token = st.secrets["TURSO_AUTH_TOKEN"]
-  conn = libsql.connect(database=db_url, auth_token=auth_token)
-  conn.execute(CREATE_PLAYER_RESOURCES_SQL)
-  conn.commit()
-  return conn
-
-
-@st.cache_data(ttl=15)
-def load_player_resources() -> pd.DataFrame:
-    conn = get_turso_conn()
-    cols_sql = ", ".join(RESOURCE_COLUMNS)
-    query = f"""
-        WITH ranked AS (
-            SELECT
-                {cols_sql},
-                ROW_NUMBER() OVER (
-                    PARTITION BY player_name
-                    ORDER BY id DESC
-                ) AS rn
-            FROM player_resources
-        )
-        SELECT {cols_sql}
-        FROM ranked
-        WHERE rn = 1
-        ORDER BY player_name ASC
-    """
-    rows = conn.execute(query).fetchall()
-    if not rows:
-        return pd.DataFrame(columns=RESOURCE_COLUMNS)
-    return pd.DataFrame(rows, columns=RESOURCE_COLUMNS) 
-
-
-def upsert_player_resources(data: dict) -> bool:
-    """Appends a new snapshot row to `player_resources` instead of overwriting."""
-    conn = get_turso_conn()
-    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    try:
-        conn.execute(
-            """
-            INSERT INTO player_resources (
-                player_name,
-                power_val,
-                hammers,
-                skill_tickets,
-                skill_summon_cost,
-                skill_level,
-                egg_summon_lvl,
-                egg_summon_chance,
-                pets_to_merge,
-                mount_summon_lvl,
-                mount_clockwinders,
-                mount_cost_reduction,
-                mount_extra_chance,
-                clan_tech_vials,
-                Eggshells,
-                mount_mergers,
-                updated_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                data["player_name"],
-                float(data["power_val"]),
-                int(data["hammers"]),
-                int(data["skill_tickets"]),
-                int(data["skill_summon_cost"]),
-                str(data["skill_level"]),
-                str(data["egg_summon_lvl"]),
-                int(data["egg_summon_chance"]),
-                int(data["pets_to_merge"]),
-                str(data["mount_summon_lvl"]),
-                int(data["mount_clockwinders"]),
-                int(data["mount_cost_reduction"]),
-                int(data["mount_extra_chance"]),
-                int(data["clan_tech_vials"]),
-                int(data["Eggshells"]),
-                int(data["mount_mergers"]),
-                now_utc,
-            ),
-        )
-        conn.commit()
-        st.cache_data.clear()
-        return True
-    except Exception as exc:
-        print(f"Turso insert error: {exc}", flush=True)
-        return False 
-
-
-def format_compact_input(val) -> str:
-  """Formats a stored number for text_input prefill, e.g. 13000000000 -> '13b'."""
-  if val is None or float(val) == 0:
-    return "0"
-  val = float(val)
-  for suffix, mult in [
-      ("q", 1e15),
-      ("t", 1e12),
-      ("b", 1e9),
-      ("m", 1e6),
-      ("k", 1e3),
-  ]:
-    if abs(val) >= mult:
-      scaled = val / mult
-      return f"{scaled:g}{suffix}"
-  return f"{val:g}"
-
-
-def parse_stat_value(raw_value, default: float = 0.0) -> float:
-  """Converts strings like '13b', '4.5t', '250m', or '13000000000' into a float."""
-  if raw_value is None:
-    return float(default)
-  if isinstance(raw_value, (int, float)):
-    return float(raw_value)
-
-  text = str(raw_value).strip().lower().replace(",", "")
-  if not text:
-    return float(default)
-
-  # Match optional sign, number (int/float), and optional suffix
-  match = re.fullmatch(r"([+-]?\d+(?:\.\d+)?)\s*([a-z]*)", text)
-  if not match:
-    raise ValueError(f"Invalid number format: '{raw_value}'")
-
-  num = float(match.group(1))
-  suffix = match.group(2)
-
-  # Standard + game-friendly multipliers
-  multipliers = {
-      "": 1.0,
-      "k": 1e3,
-      "m": 1e6,
-      "b": 1e9,
-      "t": 1e12,
-      "q": 1e15,
-  }
-  if suffix not in multipliers:
-    raise ValueError(f"Unknown suffix '{suffix}' in '{raw_value}'")
-
-  return num * multipliers[suffix]
+_MULTIPLIERS = {
+    "": 1.0,
+    "k": 1e3,
+    "m": 1e6,
+    "b": 1e9,
+    "t": 1e12,
+    "q": 1e15,
+}
 
 
 BATTLE_COLS = [
@@ -266,6 +76,9 @@ BATTLE_COLS = [
     "loser",
 ]
 
+
+#### json visitor tracking ####
+#### not currently used ####
 
 def _get_jsonbin_config():
   """Returns `(url, headers)` from `st.secrets`, or `(None, None)` if missing."""
@@ -320,6 +133,9 @@ def set_visit_count(new_value):
   except Exception as exc:
     print(f"JSONBin set visit count error: {exc}", flush=True)
     return None
+
+
+#### rosters and battle functions ####
 
 
 def calc_effective_power(df, damage_lvl, health_lvl):
@@ -1214,6 +1030,59 @@ def recommend_next_reset_assignments(
 
   return pd.DataFrame(suggestions)
 
+#### input parsing ####
+
+
+def format_compact_input(val) -> str:
+  """Formats a stored numeric stat for text_input prefill, e.g. 13000000000 -> '13b'."""
+  if val is None or float(val) == 0.0:
+    return "0"
+  num = float(val)
+  for suffix, mult in [
+      ("q", 1e15),
+      ("t", 1e12),
+      ("b", 1e9),
+      ("m", 1e6),
+      ("k", 1e3),
+  ]:
+    if abs(num) >= mult:
+      return f"{num / mult:g}{suffix}"
+  return f"{num:g}" 
+
+
+def parse_stat_value(raw_value, default: float = 0.0) -> float:
+  """Converts strings like '13b', '4.5t', '250m', or '13000000000' into a float."""
+  if raw_value is None:
+    return float(default)
+  if isinstance(raw_value, (int, float)):
+    return float(raw_value)
+
+  text = str(raw_value).strip().lower().replace(",", "")
+  if not text:
+    return float(default)
+
+  # Match optional sign, number (int/float), and optional suffix
+  match = re.fullmatch(r"([+-]?\d+(?:\.\d+)?)\s*([a-z]*)", text)
+  if not match:
+    raise ValueError(f"Invalid number format: '{raw_value}'")
+
+  num = float(match.group(1))
+  suffix = match.group(2)
+
+  # Standard + game-friendly multipliers
+  multipliers = {
+      "": 1.0,
+      "k": 1e3,
+      "m": 1e6,
+      "b": 1e9,
+      "t": 1e12,
+      "q": 1e15,
+  }
+  if suffix not in multipliers:
+    raise ValueError(f"Unknown suffix '{suffix}' in '{raw_value}'")
+
+  return num * multipliers[suffix]
+
 
 def skill_lvl_parse(skill_lvl_t: str):
   """Parses 'L_sl_A' (e.g. '10_20_2') into (level, sub_level, ascension)."""
@@ -1225,9 +1094,152 @@ def skill_lvl_parse(skill_lvl_t: str):
   return lvl, sub_lvl, ascension
 
 
+
+#### turso database functions ####
+
+
+def _is_stale_stream_error(exc: Exception) -> bool:
+  msg = str(exc).lower()
+  return (
+      "stream not found" in msg
+      or "stream_expired" in msg
+      or ("hrana" in msg and "404" in msg)
+  )
+
+
+def reset_turso_conn():
+  """Closes the cached connection (if possible) and clears @st.cache_resource."""
+  try:
+    conn = get_turso_conn()
+    close_fn = getattr(conn, "close", None)
+    if callable(close_fn):
+      close_fn()
+  except Exception:
+    pass
+  finally:
+    get_turso_conn.clear()
+
+
+def run_with_reconnect(operation):
+  """Runs `operation(conn)` and retries once with a fresh Turso connection on stale stream errors."""
+  try:
+    return operation(get_turso_conn())
+  except Exception as exc:
+    if not _is_stale_stream_error(exc):
+      raise
+    print(f"Stale Turso stream detected, reconnecting: {exc}", flush=True)
+    reset_turso_conn()
+    return operation(get_turso_conn())
+
+
+@st.cache_resource
+def get_turso_conn():
+  db_url = st.secrets["TURSO_DATABASE_URL"]
+  auth_token = st.secrets["TURSO_AUTH_TOKEN"]
+  conn = libsql.connect(database=db_url, auth_token=auth_token)
+  conn.execute(CREATE_PLAYER_RESOURCES_SQL)
+  conn.commit()
+  return conn
+
+
+def ensure_player_resources_table():
+  """Creates player_resources in Turso if it doesn't exist yet."""
+  def _op(conn):
+    conn.execute(CREATE_PLAYER_RESOURCES_SQL)
+    conn.commit()
+
+  run_with_reconnect(_op)
+
+
+@st.cache_data(ttl=15)
+def load_player_resources() -> pd.DataFrame:
+  cols_sql = ", ".join(RESOURCE_COLUMNS)
+  query = f"""
+        WITH ranked AS (
+            SELECT
+                {cols_sql},
+                ROW_NUMBER() OVER (
+                    PARTITION BY player_name
+                    ORDER BY id DESC
+                ) AS rn
+            FROM player_resources
+        )
+        SELECT {cols_sql}
+        FROM ranked
+        WHERE rn = 1
+        ORDER BY player_name ASC
+    """
+
+  def _op(conn):
+    return conn.execute(query).fetchall()
+
+  rows = run_with_reconnect(_op)
+  if not rows:
+    return pd.DataFrame(columns=RESOURCE_COLUMNS)
+  return pd.DataFrame(rows, columns=RESOURCE_COLUMNS)
+
+
+def upsert_player_resources(data: dict) -> bool:
+  """Appends a new snapshot row to `player_resources` instead of overwriting."""
+  now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+  params = (
+      data["player_name"],
+      float(data["power_val"]),
+      int(data["hammers"]),
+      int(data["skill_tickets"]),
+      int(data["skill_summon_cost"]),
+      str(data["skill_level"]),
+      str(data["egg_summon_lvl"]),
+      int(data["egg_summon_chance"]),
+      int(data["pets_to_merge"]),
+      str(data["mount_summon_lvl"]),
+      int(data["mount_clockwinders"]),
+      int(data["mount_cost_reduction"]),
+      int(data["mount_extra_chance"]),
+      int(data["clan_tech_vials"]),
+      int(data["Eggshells"]),
+      int(data["mount_mergers"]),
+      now_utc,
+  )
+  insert_sql = """
+        INSERT INTO player_resources (
+            player_name,
+            power_val,
+            hammers,
+            skill_tickets,
+            skill_summon_cost,
+            skill_level,
+            egg_summon_lvl,
+            egg_summon_chance,
+            pets_to_merge,
+            mount_summon_lvl,
+            mount_clockwinders,
+            mount_cost_reduction,
+            mount_extra_chance,
+            clan_tech_vials,
+            Eggshells,
+            mount_mergers,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+  def _op(conn):
+    conn.execute(insert_sql, params)
+    conn.commit()
+    return True
+
+  try:
+    result = run_with_reconnect(_op)
+    st.cache_data.clear()
+    return bool(result)
+  except Exception as exc:
+    print(f"Turso insert error: {exc}", flush=True)
+    return False
+
+
 def get_latest_turso_power_map() -> dict[str, float]:
   """Returns {player_name: latest_power_val} from the append-only Turso table."""
-  conn = get_turso_conn()
   query = """
         WITH ranked AS (
             SELECT
@@ -1243,9 +1255,14 @@ def get_latest_turso_power_map() -> dict[str, float]:
         FROM ranked
         WHERE rn = 1
     """
-  rows = conn.execute(query).fetchall()
+
+  def _op(conn):
+    return conn.execute(query).fetchall()
+
+  rows = run_with_reconnect(_op)
   return {
       str(name).strip(): float(power)
       for name, power in rows
       if name is not None and power is not None
   }
+
