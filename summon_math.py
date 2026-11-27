@@ -2,6 +2,9 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+REPO_ROOT = Path(__file__).resolve().parent
+DATA_DIR = REPO_ROOT / "data"
+
 SUMMARY_COLS = [
     "player_name",
     "Skill ticket points without ascending",
@@ -30,18 +33,17 @@ def _prep_summon_table(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, dict]]
 
 
 @st.cache_data
-def load_summon_tables(data_dir: str = ".") -> dict[str, tuple[pd.DataFrame, dict[str, dict]]]:
-  """Loads skill, egg, and mount CSVs once and caches them."""
+def load_summon_tables(
+    data_dir: Path = DATA_DIR,
+) -> dict[str, tuple[pd.DataFrame, dict[str, dict]]]:
+  base = Path(data_dir)
   files = {
-      "skill": Path(data_dir) / "skill_summons.csv",
-      "egg": Path(data_dir) / "egg_summons.csv",
-      "mount": Path(data_dir) / "mount_summons.csv",
+      "skill": base / "skill_summons.csv",
+      "egg": base / "egg_summons.csv",
+      "mount": base / "mount_summons.csv",
   }
-  tables = {}
-  for pillar, path in files.items():
-    df = pd.read_csv(path)
-    tables[pillar] = _prep_summon_table(df)
-  return tables
+  return {pillar: _prep_summon_table(pd.read_csv(path)) for pillar, path in files.items()}
+ 
 
 
 def parse_current_summons(lvl_str: str, by_level: dict[str, dict]) -> tuple[int, dict]:
