@@ -101,6 +101,11 @@ pages = [
 #        icon="📡",
 #    ),
     st.Page(
+        "pages/war_points.py",
+        title="War Points",
+        icon="🪙",
+    ),
+    st.Page(
         "pages/roster_editor.py",
         title="Roster Editor",
         icon="✏️",
