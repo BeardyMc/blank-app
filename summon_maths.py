@@ -85,3 +85,66 @@ def find_reached_row(target_summons: int, sorted_df: pd.DataFrame) -> pd.Series:
   if reached.empty:
     return sorted_df.iloc[0]
   return reached.iloc[-1]
+
+
+def compute_player_summary(
+    players_df: pd.DataFrame,
+    summon_tables: dict[str, tuple[pd.DataFrame, dict[str, dict]]],
+) -> pd.DataFrame:
+  """Builds the per-player summary table sequentially across all players."""
+  skill_df, skill_map = summon_tables["skill"]
+  egg_df, egg_map = summon_tables["egg"]
+  mount_df, mount_map = summon_tables["mount"]
+
+  results = []
+
+  for _, player in players_df.iterrows():
+    name = player.get("player_name", "Unknown")
+
+    # --- 1. SKILLS ---
+    skill_cur, _ = parse_current_summons(player.get("skill_level", "1_0_0"), skill_map)
+    skill_cost = max(1.0, float(player.get("skill_summon_cost") or 1.0))
+    skill_tickets = float(player.get("skill_tickets") or 0.0)
+    skill_summons_gain = int(skill_tickets // skill_cost)
+    skill_target_row = find_reached_row(skill_cur + skill_summons_gain, skill_df)
+
+    # TODO: Replace with your exact skill point formulas using skill_summons_gain & skill_target_row
+    skill_pts_no_asc = float(skill_summons_gain)
+    skill_pts_if_asc = float(skill_summons_gain)
+
+    # --- 2. EGGS / PETS ---
+    egg_cur, _ = parse_current_summons(player.get("egg_summon_lvl", "1_0_0"), egg_map)
+    pets_to_merge = float(player.get("pets_to_merge") or 0.0)
+    eggshells = float(player.get("Eggshells") or 0.0)
+    egg_target_row = find_reached_row(egg_cur, egg_df)
+
+    # TODO: Replace with your exact egg merger & pet ascension formulas
+    egg_pts_mergers = float(pets_to_merge) + float(eggshells) * 0.0
+    ascend_pet_tier = str(egg_target_row["Level"])
+
+    # --- 3. MOUNTS ---
+    mount_cur, _ = parse_current_summons(player.get("mount_summon_lvl", "1_0_0"), mount_map)
+    clockwinders = float(player.get("mount_clockwinders") or 0.0)
+    mount_mergers = float(player.get("mount_mergers") or 0.0)
+    mount_target_row = find_reached_row(mount_cur + int(clockwinders), mount_df)
+
+    # TODO: Replace with your exact mount summon & merger formulas
+    mount_pts_no_asc = float(clockwinders)
+    mount_pts_if_asc = float(clockwinders)
+    mount_mergers_if_asc = float(mount_mergers)
+
+    results.append({
+        "player_name": name,
+        "Skill ticket points without ascending": skill_pts_no_asc,
+        "Skill ticket points if ascend": skill_pts_if_asc,
+        "Egg Points from mergers": egg_pts_mergers,
+        "Ascend pet tier": ascend_pet_tier,
+        "Mount summon points without ascending": mount_pts_no_asc,
+        "Mount summon points if ascending": mount_pts_if_asc,
+        "Mount mergers if ascending": mount_mergers_if_asc,
+    })
+
+  if not results:
+    return pd.DataFrame(columns=SUMMARY_COLS)
+  return pd.DataFrame(results)[SUMMARY_COLS]
+
