@@ -3,13 +3,8 @@ from summon_maths import compute_player_summary, load_summon_tables
 
 st.title("War Points Summary")
 
+# csv file hosted in github, so easily edited for game expansions
 summon_tables = load_summon_tables()
-
-# Pass your loaded player resources DataFrame in here
-
-st.write(st.session_state)
-players_df = st.session_state.get("player_resources_df")
-st.session_state.players_resources_df
 
 if "players_resources_df" not in st.session_state: 
   st.info("No player resource data available yet.")
