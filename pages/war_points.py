@@ -11,7 +11,7 @@ st.write(st.session_state)
 players_df = st.session_state.get("player_resources_df")
 st.session_state.players_resources_df
 
-if "players_resources_df" not in st.session_state 
+if "players_resources_df" not in st.session_state: 
   st.info("No player resource data available yet.")
 else:
   summary_df = compute_player_summary(st.session_state.players_resources_df, summon_tables)
