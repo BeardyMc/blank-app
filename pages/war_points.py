@@ -9,9 +9,10 @@ summon_tables = load_summon_tables()
 
 st.write(st.session_state)
 players_df = st.session_state.get("player_resources_df")
+st.session_state.players_resources_df
 
-if players_df is None or players_df.empty:
+if "players_resources_df" not in st.session_state 
   st.info("No player resource data available yet.")
 else:
-  summary_df = compute_player_summary(players_df, summon_tables)
+  summary_df = compute_player_summary(st.session_state.players_resources_df, summon_tables)
   st.dataframe(summary_df, use_container_width=True)
