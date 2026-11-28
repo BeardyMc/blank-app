@@ -271,4 +271,6 @@ with st.form("clan_resources_form"):
 
 st.divider()
 st.subheader("Saved Clan Resources")
-st.dataframe(load_player_resources(), width="stretch", hide_index=True)
+
+st.session_state.players_resources_df=load_player_resources()
+st.dataframe(st.session_state.players_resources_df, width="stretch", hide_index=True)
