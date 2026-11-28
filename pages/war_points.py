@@ -6,6 +6,8 @@ st.title("War Points Summary")
 summon_tables = load_summon_tables()
 
 # Pass your loaded player resources DataFrame in here
+
+st.write(st.session_state)
 players_df = st.session_state.get("player_resources_df")
 
 if players_df is None or players_df.empty:
